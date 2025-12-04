@@ -1,6 +1,8 @@
 package com.fooddelivery.authservice.model;
 
 public enum Role {
-    USER,
+    CUSTOMER,
+    RESTAURANT_OWNER,
+    DELIVERY_DRIVER,
     ADMIN
 }
