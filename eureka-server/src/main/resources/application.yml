@@ -1,0 +1,13 @@
+server:
+  port: 8761
+
+spring:
+  application:
+    name: eureka-server
+
+eureka:
+  client:
+    register-with-eureka: false  # This server does NOT register itself
+    fetch-registry: false         # It does not fetch registry
+  server:
+    wait-time-in-ms-when-sync-empty: 0
