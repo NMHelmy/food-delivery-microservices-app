@@ -12,7 +12,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.gamestore</groupId>
+    <groupId>com.fooddelivery</groupId>
     <artifactId>test-service</artifactId>
     <version>1.0.0</version>
 
