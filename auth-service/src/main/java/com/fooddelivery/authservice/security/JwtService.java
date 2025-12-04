@@ -32,10 +32,38 @@ public class JwtService {
     }
 
     public Claims validateToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new RuntimeException("Invalid or expired JWT token: " + e.getMessage());
+        }
+    }
+
+    public boolean isTokenValid(String token) {
+        try {
+            validateToken(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public Long getUserIdFromToken(String token) {
+        Claims claims = validateToken(token);
+        return claims.get("userId", Long.class);
+    }
+
+    public String getRoleFromToken(String token) {
+        Claims claims = validateToken(token);
+        return claims.get("role", String.class);
+    }
+
+    public String getEmailFromToken(String token) {
+        Claims claims = validateToken(token);
+        return claims.get("email", String.class);
     }
 }

@@ -1,23 +1,48 @@
 package com.fooddelivery.authservice.service;
 
+import com.fooddelivery.authservice.dto.RegisterRequest;
 import com.fooddelivery.authservice.model.Role;
 import com.fooddelivery.authservice.model.User;
 import com.fooddelivery.authservice.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class UserService {
 
-    @Autowired private UserRepository userRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserRepository userRepository;
 
-    public User registerUser(String email, String password, Role role) {
-        if (userRepository.existsByEmail(email)) {
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Transactional
+    public User registerUser(RegisterRequest request) {
+        // Validate email uniqueness
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists");
         }
-        User user = new User(email, passwordEncoder.encode(password), role);
+
+        // Validate phone number uniqueness
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new RuntimeException("Phone number already exists");
+        }
+
+        // Create new user
+        User user = new User(
+                request.getEmail(),
+                passwordEncoder.encode(request.getPassword()),
+                request.getRole(),
+                request.getFullName(),
+                request.getPhoneNumber()
+        );
+
         return userRepository.save(user);
     }
 
@@ -25,10 +50,109 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (!user.isActive()) {
+            throw new RuntimeException("Account is deactivated");
+        }
+
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Invalid credentials");
         }
 
         return user;
+    }
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public List<User> getUsersByRole(Role role) {
+        return userRepository.findByRole(role);
+    }
+
+    @Transactional
+    public User updateUser(Long userId, String fullName, String phoneNumber) {
+        User user = getUserById(userId);
+
+        if (fullName != null && !fullName.isEmpty()) {
+            user.setFullName(fullName);
+        }
+
+        if (phoneNumber != null && !phoneNumber.isEmpty()) {
+            // Check if phone number is already taken by another user
+            if (!phoneNumber.equals(user.getPhoneNumber()) &&
+                    userRepository.existsByPhoneNumber(phoneNumber)) {
+                throw new RuntimeException("Phone number already exists");
+            }
+            user.setPhoneNumber(phoneNumber);
+        }
+
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = getUserById(userId);
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("Invalid old password");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public String generatePasswordResetToken(String email) {
+        User user = getUserByEmail(email);
+
+        String resetToken = UUID.randomUUID().toString();
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiry(LocalDateTime.now().plusHours(1)); // Token valid for 1 hour
+
+        userRepository.save(user);
+        return resetToken;
+    }
+
+    @Transactional
+    public void resetPassword(String resetToken, String newPassword) {
+        User user = userRepository.findByResetToken(resetToken)
+                .orElseThrow(() -> new RuntimeException("Invalid reset token"));
+
+        if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset token has expired");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void deactivateUser(Long userId) {
+        User user = getUserById(userId);
+        user.setActive(false);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void activateUser(Long userId) {
+        User user = getUserById(userId);
+        user.setActive(true);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void verifyEmail(Long userId) {
+        User user = getUserById(userId);
+        user.setEmailVerified(true);
+        userRepository.save(user);
     }
 }
