@@ -79,7 +79,7 @@ public class AuthController {
         }
     }
 
-    // Token validation endpoint - OTHER SERVICES WILL CALL THIS
+    // Token validation endpoint - other services will call this
     @PostMapping("/validate")
     public ResponseEntity<?> validateToken(@RequestBody Map<String, String> request) {
         try {
@@ -112,11 +112,9 @@ public class AuthController {
             String email = request.get("email");
             String resetToken = userService.generatePasswordResetToken(email);
 
-            // In production, send this token via email
-            // For now, return it in response
             return ResponseEntity.ok(Map.of(
                     "message", "Password reset token generated",
-                    "resetToken", resetToken // Remove this in production
+                    "resetToken", resetToken
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
