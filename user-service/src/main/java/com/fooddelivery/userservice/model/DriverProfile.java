@@ -39,7 +39,7 @@ public class DriverProfile {
     public DriverProfile() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        this.status = "OFFLINE";
+        this.status = DriverStatus.OFFLINE;
     }
 
     @PreUpdate
@@ -63,8 +63,8 @@ public class DriverProfile {
     public String getLicenseNumber() { return licenseNumber; }
     public void setLicenseNumber(String licenseNumber) { this.licenseNumber = licenseNumber; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public DriverStatus getStatus() { return status; }
+    public void setStatus(DriverStatus status) { this.status = status; }
 
     public Double getCurrentLatitude() { return currentLatitude; }
     public void setCurrentLatitude(Double currentLatitude) { this.currentLatitude = currentLatitude; }

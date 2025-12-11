@@ -6,10 +6,10 @@ spring:
     name: restaurant-service
 
   datasource:
-    url: jdbc:mysql://localhost:3306/restaurant_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/${DB_NAME}?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: Root123!
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:

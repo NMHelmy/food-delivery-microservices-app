@@ -7,9 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fooddelivery.userservice.feign.AuthServiceClient;
+import com.fooddelivery.userservice.model.DriverStatus;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class DriverService {
@@ -52,6 +54,17 @@ public class DriverService {
     }
 
     @Transactional
+    public DriverProfile updateDriverProfile(Long userId, DriverProfileDTO dto) {
+        DriverProfile profile = getDriverProfile(userId);
+
+        if (dto.getVehicleType() != null) profile.setVehicleType(dto.getVehicleType());
+        if (dto.getVehicleNumber() != null) profile.setVehicleNumber(dto.getVehicleNumber());
+        if (dto.getLicenseNumber() != null) profile.setLicenseNumber(dto.getLicenseNumber());
+
+        return driverProfileRepository.save(profile);
+    }
+
+    @Transactional
     public DriverProfile updateDriverStatus(Long userId, String statusString) {
         DriverProfile profile = getDriverProfile(userId);
 
@@ -66,24 +79,29 @@ public class DriverService {
     }
 
     @Transactional
-    public DriverProfile updateDriverStatus(Long userId, String status) {
-        DriverProfile profile = getDriverProfile(userId);
-        profile.setStatus(status);
-        return driverProfileRepository.save(profile);
-    }
-
-    @Transactional
     public DriverProfile updateDriverLocation(Long userId, Double latitude, Double longitude) {
         DriverProfile profile = getDriverProfile(userId);
+
+        if (latitude == null || longitude == null) {
+            throw new RuntimeException("Latitude and longitude are required");
+        }
+
+        if (latitude < -90 || latitude > 90) {
+            throw new RuntimeException("Latitude must be between -90 and 90");
+        }
+
+        if (longitude < -180 || longitude > 180) {
+            throw new RuntimeException("Longitude must be between -180 and 180");
+        }
+
         profile.setCurrentLatitude(latitude);
         profile.setCurrentLongitude(longitude);
         return driverProfileRepository.save(profile);
     }
 
     public List<DriverProfile> getAvailableDrivers() {
-        return driverProfileRepository.findByStatus("AVAILABLE");
+        return driverProfileRepository.findByStatus(String.valueOf(DriverStatus.AVAILABLE));
     }
-
     public List<DriverProfile> getAllDrivers() {
         return driverProfileRepository.findAll();
     }
