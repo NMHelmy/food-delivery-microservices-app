@@ -51,8 +51,19 @@ public class OwnerController {
     }
 
     @GetMapping("/profile/{userId}")
-    public ResponseEntity<?> getProfile(@PathVariable Long userId) {
+    public ResponseEntity<?> getProfile(
+            @PathVariable Long userId,
+            @RequestHeader("Authorization") String authHeader) {  // ADDED
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long requestingUserId = validateTokenAndGetUserId(token);
+
+            // ADDED: Only allow users to view their own profile
+            if (!requestingUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only view your own profile"));
+            }
+
             OwnerProfile profile = ownerService.getOwnerProfile(userId);
             return ResponseEntity.ok(profile);
         } catch (RuntimeException e) {
@@ -64,8 +75,18 @@ public class OwnerController {
     @PutMapping("/profile/{userId}")
     public ResponseEntity<?> updateProfile(
             @PathVariable Long userId,
-            @Valid @RequestBody OwnerProfileDTO dto) {
+            @Valid @RequestBody OwnerProfileDTO dto,
+            @RequestHeader("Authorization") String authHeader) {  // ADDED
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long requestingUserId = validateTokenAndGetUserId(token);
+
+            // ADDED: Only allow users to update their own profile
+            if (!requestingUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only update your own profile"));
+            }
+
             OwnerProfile profile = ownerService.updateOwnerProfile(userId, dto);
             return ResponseEntity.ok(profile);
         } catch (RuntimeException e) {

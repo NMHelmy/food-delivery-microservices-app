@@ -61,8 +61,18 @@ public class CustomerController {
     }
 
     @GetMapping("/profile/{userId}")
-    public ResponseEntity<?> getProfile(@PathVariable Long userId) {
+    public ResponseEntity<?> getProfile(
+            @PathVariable Long userId,
+            @RequestHeader("Authorization") String authHeader) {
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long requestingUserId = validateTokenAndGetUserId(token);
+
+            if (!requestingUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only view your own profile"));
+            }
+
             CustomerProfile profile = customerService.getCustomerProfile(userId);
             return ResponseEntity.ok(profile);
         } catch (RuntimeException e) {
@@ -88,20 +98,23 @@ public class CustomerController {
     }
 
     // Address endpoints
-    @PostMapping("/address")
-    public ResponseEntity<?> addAddress(
-            @RequestHeader("Authorization") String authHeader,
-            @Valid @RequestBody AddressDTO dto) {
+    @GetMapping("/{userId}/addresses")
+    public ResponseEntity<?> getAddresses(
+            @PathVariable Long userId,
+            @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.replace("Bearer ", "");
-            Long userId = validateTokenAndGetUserId(token);
+            Long requestingUserId = validateTokenAndGetUserId(token);
 
-            dto.setUserId(userId);
+            if (!requestingUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only view your own addresses"));
+            }
 
-            Address address = customerService.addAddress(dto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(address);
+            List<Address> addresses = customerService.getAddressesByUserId(userId);
+            return ResponseEntity.ok(addresses);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
     }
@@ -118,8 +131,18 @@ public class CustomerController {
     }
 
     @GetMapping("/{userId}/address/default")
-    public ResponseEntity<?> getDefaultAddress(@PathVariable Long userId) {
+    public ResponseEntity<?> getDefaultAddress(
+            @PathVariable Long userId,
+            @RequestHeader("Authorization") String authHeader) {
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long requestingUserId = validateTokenAndGetUserId(token);
+
+            if (!requestingUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only view your own addresses"));
+            }
+
             Address address = customerService.getDefaultAddress(userId);
             return ResponseEntity.ok(address);
         } catch (RuntimeException e) {
@@ -131,8 +154,18 @@ public class CustomerController {
     @PutMapping("/address/{addressId}")
     public ResponseEntity<?> updateAddress(
             @PathVariable Long addressId,
-            @Valid @RequestBody AddressDTO dto) {
+            @Valid @RequestBody AddressDTO dto,
+            @RequestHeader("Authorization") String authHeader) {
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long userId = validateTokenAndGetUserId(token);
+
+            Address existingAddress = customerService.getAddressById(addressId);
+            if (!existingAddress.getUserId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only update your own addresses"));
+            }
+
             Address address = customerService.updateAddress(addressId, dto);
             return ResponseEntity.ok(address);
         } catch (RuntimeException e) {
@@ -144,7 +177,7 @@ public class CustomerController {
     @DeleteMapping("/address/{addressId}")
     public ResponseEntity<?> deleteAddress(
             @PathVariable Long addressId,
-            @RequestHeader("Authorization") String authHeader) {  // ADD THIS
+            @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.replace("Bearer ", "");
             Long userId = validateTokenAndGetUserId(token);

@@ -52,8 +52,18 @@ public class DriverController {
     }
 
     @GetMapping("/profile/{userId}")
-    public ResponseEntity<?> getProfile(@PathVariable Long userId) {
+    public ResponseEntity<?> getProfile(
+            @PathVariable Long userId,
+            @RequestHeader("Authorization") String authHeader) {
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long requestingUserId = validateTokenAndGetUserId(token);
+
+            if (!requestingUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only view your own profile"));
+            }
+
             DriverProfile profile = driverService.getDriverProfile(userId);
             return ResponseEntity.ok(profile);
         } catch (RuntimeException e) {
@@ -65,8 +75,17 @@ public class DriverController {
     @PutMapping("/profile/{userId}")
     public ResponseEntity<?> updateProfile(
             @PathVariable Long userId,
-            @Valid @RequestBody DriverProfileDTO dto) {
+            @Valid @RequestBody DriverProfileDTO dto,
+            @RequestHeader("Authorization") String authHeader) {
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long requestingUserId = validateTokenAndGetUserId(token);
+
+            if (!requestingUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only update your own profile"));
+            }
+
             DriverProfile profile = driverService.updateDriverProfile(userId, dto);
             return ResponseEntity.ok(profile);
         } catch (RuntimeException e) {
@@ -78,8 +97,17 @@ public class DriverController {
     @PutMapping("/{userId}/status")
     public ResponseEntity<?> updateStatus(
             @PathVariable Long userId,
-            @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, String> request,
+            @RequestHeader("Authorization") String authHeader) {
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long requestingUserId = validateTokenAndGetUserId(token);
+
+            if (!requestingUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only update your own status"));
+            }
+
             String status = request.get("status");
             DriverProfile profile = driverService.updateDriverStatus(userId, status);
             return ResponseEntity.ok(profile);
@@ -92,8 +120,17 @@ public class DriverController {
     @PutMapping("/{userId}/location")
     public ResponseEntity<?> updateLocation(
             @PathVariable Long userId,
-            @RequestBody Map<String, Double> request) {
+            @RequestBody Map<String, Double> request,
+            @RequestHeader("Authorization") String authHeader) {
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long requestingUserId = validateTokenAndGetUserId(token);
+
+            if (!requestingUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only update your own location"));
+            }
+
             Double latitude = request.get("latitude");
             Double longitude = request.get("longitude");
             DriverProfile profile = driverService.updateDriverLocation(userId, latitude, longitude);
@@ -111,8 +148,28 @@ public class DriverController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<?> getAllDrivers() {
-        List<DriverProfile> drivers = driverService.getAllDrivers();
-        return ResponseEntity.ok(drivers);
+    public ResponseEntity<?> getAllDrivers(
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            Map<String, Object> response = authServiceClient.validateToken(Map.of("token", token));
+
+            if (!(Boolean) response.get("valid")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid or expired token"));
+            }
+
+            String role = (String) response.get("role");
+            if (!"ADMIN".equals(role)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can view all drivers"));
+            }
+
+            List<DriverProfile> drivers = driverService.getAllDrivers();
+            return ResponseEntity.ok(drivers);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 }
