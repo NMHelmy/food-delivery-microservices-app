@@ -52,12 +52,15 @@ public class DriverService {
     }
 
     @Transactional
-    public DriverProfile updateDriverProfile(Long userId, DriverProfileDTO dto) {
+    public DriverProfile updateDriverStatus(Long userId, String statusString) {
         DriverProfile profile = getDriverProfile(userId);
 
-        if (dto.getVehicleType() != null) profile.setVehicleType(dto.getVehicleType());
-        if (dto.getVehicleNumber() != null) profile.setVehicleNumber(dto.getVehicleNumber());
-        if (dto.getLicenseNumber() != null) profile.setLicenseNumber(dto.getLicenseNumber());
+        try {
+            DriverStatus status = DriverStatus.valueOf(statusString.toUpperCase());
+            profile.setStatus(status);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid status. Must be: AVAILABLE, BUSY, or OFFLINE");
+        }
 
         return driverProfileRepository.save(profile);
     }

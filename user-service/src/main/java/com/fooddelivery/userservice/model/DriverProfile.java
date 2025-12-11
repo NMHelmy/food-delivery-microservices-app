@@ -23,8 +23,9 @@ public class DriverProfile {
     @Column(nullable = false)
     private String licenseNumber;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // "AVAILABLE", "BUSY", "OFFLINE"
+    private DriverStatus status;
 
     private Double currentLatitude;
     private Double currentLongitude;
