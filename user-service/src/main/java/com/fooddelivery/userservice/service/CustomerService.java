@@ -10,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fooddelivery.userservice.feign.AuthServiceClient;
+import com.fooddelivery.userservice.exception.BadRequestException;
+import com.fooddelivery.userservice.exception.ResourceNotFoundException;
+import com.fooddelivery.userservice.exception.UnauthorizedException;
 
 import java.util.List;
 import java.util.Map;
@@ -33,11 +36,11 @@ public class CustomerService {
         String role = (String) userInfo.get("role");
 
         if (!"CUSTOMER".equals(role)) {
-            throw new RuntimeException("Only users with CUSTOMER role can create customer profiles");
+            throw new UnauthorizedException("Only users with CUSTOMER role can create customer profiles");
         }
 
         if (customerProfileRepository.existsByUserId(dto.getUserId())) {
-            throw new RuntimeException("Customer profile already exists for this user");
+            throw new BadRequestException("Customer profile already exists for this user");
         }
 
         CustomerProfile profile = new CustomerProfile();
@@ -51,7 +54,7 @@ public class CustomerService {
 
     public CustomerProfile getCustomerProfile(Long userId) {
         return customerProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Customer profile not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Customer profile not found for user with id: " + userId));
     }
 
     @Transactional
@@ -106,7 +109,7 @@ public class CustomerService {
 
     public Address getAddressById(Long addressId) {
         return addressRepository.findById(addressId)
-                .orElseThrow(() -> new RuntimeException("Address not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found with id: " + addressId));
     }
 
     @Transactional
@@ -142,6 +145,6 @@ public class CustomerService {
 
     public Address getDefaultAddress(Long userId) {
         return addressRepository.findByUserIdAndIsDefault(userId, true)
-                .orElseThrow(() -> new RuntimeException("No default address found"));
+                .orElseThrow(() -> new ResourceNotFoundException("No default address found for user with id: " + userId));
     }
 }

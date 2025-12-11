@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.HashMap;
 import java.util.Map;
+import com.fooddelivery.authservice.exception.BadRequestException;
+import com.fooddelivery.authservice.exception.UnauthorizedException;
 
 @RestController
 @RequestMapping("/auth")
@@ -26,72 +28,61 @@ public class AuthController {
     private JwtService jwtService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        try {
-            User user = userService.registerUser(request);
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        User user = userService.registerUser(request);
 
-            String token = jwtService.generateToken(Map.of(
-                    "userId", user.getId(),
-                    "email", user.getEmail(),
-                    "role", user.getRole().name(),
-                    "fullName", user.getFullName()
-            ));
+        String token = jwtService.generateToken(Map.of(
+                "userId", user.getId(),
+                "email", user.getEmail(),
+                "role", user.getRole().name(),
+                "fullName", user.getFullName()
+        ));
 
-            AuthResponse response = new AuthResponse(
-                    token,
-                    user.getId(),
-                    user.getEmail(),
-                    user.getFullName(),
-                    user.getRole().name(),
-                    "User registered successfully"
-            );
+        AuthResponse response = new AuthResponse(
+                token,
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getRole().name(),
+                "User registered successfully"
+        );
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        try {
-            User user = userService.login(request.getEmail(), request.getPassword());
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        User user = userService.login(request.getEmail(), request.getPassword());
 
-            String token = jwtService.generateToken(Map.of(
-                    "userId", user.getId(),
-                    "email", user.getEmail(),
-                    "role", user.getRole().name(),
-                    "fullName", user.getFullName()
-            ));
+        String token = jwtService.generateToken(Map.of(
+                "userId", user.getId(),
+                "email", user.getEmail(),
+                "role", user.getRole().name(),
+                "fullName", user.getFullName()
+        ));
 
-            AuthResponse response = new AuthResponse(
-                    token,
-                    user.getId(),
-                    user.getEmail(),
-                    user.getFullName(),
-                    user.getRole().name(),
-                    "Login successful"
-            );
+        AuthResponse response = new AuthResponse(
+                token,
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getRole().name(),
+                "Login successful"
+        );
 
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(response);
     }
 
     // Token validation endpoint - other services will call this
     @PostMapping("/validate")
-    public ResponseEntity<?> validateToken(@RequestBody Map<String, String> request) {
+    public ResponseEntity<ValidationResponse> validateToken(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+
+        if (token == null || token.isEmpty()) {
+            throw new BadRequestException("Token is required");
+        }
+
         try {
-            String token = request.get("token");
-
-            if (token == null || token.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(new ValidationResponse(false, "Token is required"));
-            }
-
             Claims claims = jwtService.validateToken(token);
 
             ValidationResponse response = new ValidationResponse(
@@ -103,8 +94,7 @@ public class AuthController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ValidationResponse(false, "Invalid or expired token"));
+            throw new UnauthorizedException("Invalid or expired token");
         }
     }
 

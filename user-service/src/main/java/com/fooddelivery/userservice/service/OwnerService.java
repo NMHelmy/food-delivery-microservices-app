@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fooddelivery.userservice.feign.AuthServiceClient;
+import com.fooddelivery.userservice.exception.BadRequestException;
+import com.fooddelivery.userservice.exception.ResourceNotFoundException;
+import com.fooddelivery.userservice.exception.UnauthorizedException;
 
 import java.util.Map;
 
@@ -21,19 +24,15 @@ public class OwnerService {
 
     @Transactional
     public OwnerProfile createOwnerProfile(OwnerProfileDTO dto) {
-        try {
-            Map<String, Object> userInfo = authServiceClient.getUserInfo(dto.getUserId());
-            String role = (String) userInfo.get("role");
+        Map<String, Object> userInfo = authServiceClient.getUserInfo(dto.getUserId());
+        String role = (String) userInfo.get("role");
 
-            if (!"RESTAURANT_OWNER".equals(role)) {
-                throw new RuntimeException("Only users with RESTAURANT_OWNER role can create owner profiles");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to validate user role: " + e.getMessage());
+        if (!"RESTAURANT_OWNER".equals(role)) {
+            throw new UnauthorizedException("Only users with RESTAURANT_OWNER role can create owner profiles");
         }
 
         if (ownerProfileRepository.existsByUserId(dto.getUserId())) {
-            throw new RuntimeException("Owner profile already exists for this user");
+            throw new BadRequestException("Owner profile already exists for this user");
         }
 
         OwnerProfile profile = new OwnerProfile();
@@ -47,7 +46,7 @@ public class OwnerService {
 
     public OwnerProfile getOwnerProfile(Long userId) {
         return ownerProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Owner profile not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Owner profile not found"));
     }
 
     @Transactional

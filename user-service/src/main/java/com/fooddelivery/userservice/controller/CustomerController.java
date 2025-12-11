@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.fooddelivery.userservice.exception.UnauthorizedException;
 
 import java.util.List;
 import java.util.Map;
@@ -36,28 +37,20 @@ public class CustomerController {
     }
 
     @PostMapping("/profile")
-    public ResponseEntity<?> createProfile(
+    public ResponseEntity<CustomerProfile> createProfile(
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody CustomerProfileDTO dto) {
-        try {
-            String token = authHeader.replace("Bearer ", "");
-            Long userId = validateTokenAndGetUserId(token);
 
-            // Security check: If userId is provided in body, it must match token
-            if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "You can only create profiles for yourself"));
-            }
+        String token = authHeader.replace("Bearer ", "");
+        Long userId = validateTokenAndGetUserId(token);
 
-            // Set userId from token (overwrites any value in request)
-            dto.setUserId(userId);
-
-            CustomerProfile profile = customerService.createCustomerProfile(dto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(profile);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
+        if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
+            throw new UnauthorizedException("You can only create profiles for yourself");
         }
+
+        dto.setUserId(userId);
+        CustomerProfile profile = customerService.createCustomerProfile(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(profile);
     }
 
     @GetMapping("/profile/{userId}")
@@ -111,17 +104,6 @@ public class CustomerController {
                         .body(Map.of("error", "You can only view your own addresses"));
             }
 
-            List<Address> addresses = customerService.getAddressesByUserId(userId);
-            return ResponseEntity.ok(addresses);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @GetMapping("/{userId}/addresses")
-    public ResponseEntity<?> getAddresses(@PathVariable Long userId) {
-        try {
             List<Address> addresses = customerService.getAddressesByUserId(userId);
             return ResponseEntity.ok(addresses);
         } catch (RuntimeException e) {

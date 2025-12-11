@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fooddelivery.userservice.feign.AuthServiceClient;
 import com.fooddelivery.userservice.model.DriverStatus;
+import com.fooddelivery.userservice.exception.BadRequestException;
+import com.fooddelivery.userservice.exception.ResourceNotFoundException;
+import com.fooddelivery.userservice.exception.UnauthorizedException;
 
 import java.util.List;
 import java.util.Map;
@@ -29,14 +32,14 @@ public class DriverService {
             String role = (String) userInfo.get("role");
 
             if (!"DELIVERY_DRIVER".equals(role)) {
-                throw new RuntimeException("Only users with DELIVERY_DRIVER role can create driver profiles");
+                throw new UnauthorizedException("Only users with DELIVERY_DRIVER role can create driver profiles");
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to validate user role: " + e.getMessage());
+            throw new BadRequestException("Failed to validate user role: " + e.getMessage());
         }
 
         if (driverProfileRepository.existsByUserId(dto.getUserId())) {
-            throw new RuntimeException("Driver profile already exists for this user");
+            throw new BadRequestException("Driver profile already exists for this user");
         }
 
         DriverProfile profile = new DriverProfile();
@@ -50,7 +53,7 @@ public class DriverService {
 
     public DriverProfile getDriverProfile(Long userId) {
         return driverProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Driver profile not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Driver profile not found"));
     }
 
     @Transactional
@@ -72,7 +75,7 @@ public class DriverService {
             DriverStatus status = DriverStatus.valueOf(statusString.toUpperCase());
             profile.setStatus(status);
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid status. Must be: AVAILABLE, BUSY, or OFFLINE");
+            throw new BadRequestException("Invalid status. Must be: AVAILABLE, BUSY, or OFFLINE");
         }
 
         return driverProfileRepository.save(profile);
@@ -83,15 +86,15 @@ public class DriverService {
         DriverProfile profile = getDriverProfile(userId);
 
         if (latitude == null || longitude == null) {
-            throw new RuntimeException("Latitude and longitude are required");
+            throw new BadRequestException("Latitude and longitude are required");
         }
 
         if (latitude < -90 || latitude > 90) {
-            throw new RuntimeException("Latitude must be between -90 and 90");
+            throw new BadRequestException("Latitude must be between -90 and 90");
         }
 
         if (longitude < -180 || longitude > 180) {
-            throw new RuntimeException("Longitude must be between -180 and 180");
+            throw new BadRequestException("Longitude must be between -180 and 180");
         }
 
         profile.setCurrentLatitude(latitude);
@@ -100,7 +103,7 @@ public class DriverService {
     }
 
     public List<DriverProfile> getAvailableDrivers() {
-        return driverProfileRepository.findByStatus(String.valueOf(DriverStatus.AVAILABLE));
+        return driverProfileRepository.findByStatus(DriverStatus.AVAILABLE);
     }
     public List<DriverProfile> getAllDrivers() {
         return driverProfileRepository.findAll();

@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fooddelivery.authservice.exception.BadRequestException;
+import com.fooddelivery.authservice.exception.ResourceNotFoundException;
+import com.fooddelivery.authservice.exception.UnauthorizedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,12 +29,12 @@ public class UserService {
     public User registerUser(RegisterRequest request) {
         // Validate email uniqueness
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new BadRequestException("Email already exists");
         }
 
         // Validate phone number uniqueness
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
-            throw new RuntimeException("Phone number already exists");
+            throw new BadRequestException("Phone number already exists");
         }
 
         // Create new user
@@ -48,14 +51,14 @@ public class UserService {
 
     public User login(String email, String password) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!user.isActive()) {
-            throw new RuntimeException("Account is deactivated");
+            throw new UnauthorizedException("Account is deactivated");
         }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new UnauthorizedException("Invalid credentials");
         }
 
         return user;
@@ -67,12 +70,12 @@ public class UserService {
 
     public User getUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     public List<User> getUsersByRole(Role role) {
@@ -91,7 +94,7 @@ public class UserService {
             // Check if phone number is already taken by another user
             if (!phoneNumber.equals(user.getPhoneNumber()) &&
                     userRepository.existsByPhoneNumber(phoneNumber)) {
-                throw new RuntimeException("Phone number already exists");
+                throw new BadRequestException("Phone number already exists");
             }
             user.setPhoneNumber(phoneNumber);
         }
@@ -104,7 +107,7 @@ public class UserService {
         User user = getUserById(userId);
 
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new RuntimeException("Invalid old password");
+            throw new BadRequestException("Invalid old password");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -126,10 +129,10 @@ public class UserService {
     @Transactional
     public void resetPassword(String resetToken, String newPassword) {
         User user = userRepository.findByResetToken(resetToken)
-                .orElseThrow(() -> new RuntimeException("Invalid reset token"));
+                .orElseThrow(() -> new BadRequestException("Invalid reset token"));
 
         if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Reset token has expired");
+            throw new BadRequestException("Reset token has expired");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
