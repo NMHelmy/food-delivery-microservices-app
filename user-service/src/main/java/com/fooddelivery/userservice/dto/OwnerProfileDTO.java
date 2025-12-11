@@ -6,7 +6,6 @@ public class OwnerProfileDTO {
 
     private Long id;
 
-    @NotNull(message = "User ID is required")
     private Long userId;
 
     private String businessName;

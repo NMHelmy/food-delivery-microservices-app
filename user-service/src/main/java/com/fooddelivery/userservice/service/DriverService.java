@@ -6,8 +6,10 @@ import com.fooddelivery.userservice.repository.DriverProfileRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fooddelivery.userservice.feign.AuthServiceClient;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class DriverService {
@@ -15,8 +17,22 @@ public class DriverService {
     @Autowired
     private DriverProfileRepository driverProfileRepository;
 
+    @Autowired
+    private AuthServiceClient authServiceClient;
+
     @Transactional
     public DriverProfile createDriverProfile(DriverProfileDTO dto) {
+        try {
+            Map<String, Object> userInfo = authServiceClient.getUserInfo(dto.getUserId());
+            String role = (String) userInfo.get("role");
+
+            if (!"DELIVERY_DRIVER".equals(role)) {
+                throw new RuntimeException("Only users with DELIVERY_DRIVER role can create driver profiles");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to validate user role: " + e.getMessage());
+        }
+
         if (driverProfileRepository.existsByUserId(dto.getUserId())) {
             throw new RuntimeException("Driver profile already exists for this user");
         }

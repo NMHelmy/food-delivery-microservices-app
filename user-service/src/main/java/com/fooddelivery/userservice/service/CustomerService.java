@@ -9,8 +9,10 @@ import com.fooddelivery.userservice.repository.CustomerProfileRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fooddelivery.userservice.feign.AuthServiceClient;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class CustomerService {
@@ -21,9 +23,19 @@ public class CustomerService {
     @Autowired
     private AddressRepository addressRepository;
 
+    @Autowired
+    private AuthServiceClient authServiceClient;
+
     // Customer Profile Methods
     @Transactional
     public CustomerProfile createCustomerProfile(CustomerProfileDTO dto) {
+        Map<String, Object> userInfo = authServiceClient.getUserInfo(dto.getUserId());
+        String role = (String) userInfo.get("role");
+
+        if (!"CUSTOMER".equals(role)) {
+            throw new RuntimeException("Only users with CUSTOMER role can create customer profiles");
+        }
+
         if (customerProfileRepository.existsByUserId(dto.getUserId())) {
             throw new RuntimeException("Customer profile already exists for this user");
         }

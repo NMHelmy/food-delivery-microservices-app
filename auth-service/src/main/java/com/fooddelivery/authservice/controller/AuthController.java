@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -169,6 +171,41 @@ public class AuthController {
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String token) {
+        try {
+            // Validate token and check if user is ADMIN
+            Claims claims = jwtService.validateToken(token.replace("Bearer ", ""));
+            String role = claims.get("role", String.class);
+
+            if (!"ADMIN".equals(role)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Access denied. Admin only."));
+            }
+
+            List<User> users = userService.getAllUsers();
+
+            List<Map<String, Object>> userResponses = users.stream()
+                    .map(user -> {
+                        Map<String, Object> userMap = new HashMap<>();
+                        userMap.put("userId", user.getId());
+                        userMap.put("email", user.getEmail());
+                        userMap.put("fullName", user.getFullName());
+                        userMap.put("phoneNumber", user.getPhoneNumber());
+                        userMap.put("role", user.getRole().name());
+                        userMap.put("isActive", user.isActive());
+                        userMap.put("isEmailVerified", user.isEmailVerified());
+                        return userMap;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(userResponses);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage()));
         }
     }

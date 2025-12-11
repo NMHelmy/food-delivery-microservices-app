@@ -25,7 +25,6 @@ public class CustomerController {
     @Autowired
     private AuthServiceClient authServiceClient;
 
-    // Helper method to validate token
     private Long validateTokenAndGetUserId(String token) {
         Map<String, Object> response = authServiceClient.validateToken(Map.of("token", token));
 
@@ -44,7 +43,13 @@ public class CustomerController {
             String token = authHeader.replace("Bearer ", "");
             Long userId = validateTokenAndGetUserId(token);
 
-            // Ensure the userId in DTO matches the token
+            // Security check: If userId is provided in body, it must match token
+            if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only create profiles for yourself"));
+            }
+
+            // Set userId from token (overwrites any value in request)
             dto.setUserId(userId);
 
             CustomerProfile profile = customerService.createCustomerProfile(dto);
@@ -66,11 +71,14 @@ public class CustomerController {
         }
     }
 
-    @PutMapping("/profile/{userId}")
+    @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(
-            @PathVariable Long userId,
+            @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody CustomerProfileDTO dto) {
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long userId = validateTokenAndGetUserId(token);
+
             CustomerProfile profile = customerService.updateCustomerProfile(userId, dto);
             return ResponseEntity.ok(profile);
         } catch (RuntimeException e) {
@@ -134,8 +142,19 @@ public class CustomerController {
     }
 
     @DeleteMapping("/address/{addressId}")
-    public ResponseEntity<?> deleteAddress(@PathVariable Long addressId) {
+    public ResponseEntity<?> deleteAddress(
+            @PathVariable Long addressId,
+            @RequestHeader("Authorization") String authHeader) {  // ADD THIS
         try {
+            String token = authHeader.replace("Bearer ", "");
+            Long userId = validateTokenAndGetUserId(token);
+
+            Address address = customerService.getAddressById(addressId);
+            if (!address.getUserId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only delete your own addresses"));
+            }
+
             customerService.deleteAddress(addressId);
             return ResponseEntity.ok(Map.of("message", "Address deleted successfully"));
         } catch (RuntimeException e) {

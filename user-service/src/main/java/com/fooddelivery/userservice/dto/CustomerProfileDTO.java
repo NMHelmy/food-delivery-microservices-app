@@ -6,7 +6,6 @@ public class CustomerProfileDTO {
 
     private Long id;
 
-    @NotNull(message = "User ID is required")
     private Long userId;
 
     private String dietaryPreferences;

@@ -30,7 +30,7 @@ public class Restaurant {
     private Boolean isActive = true;
 
     @Column(nullable = false)
-    private String ownerId;
+    private Long ownerId;
 
     private String description;
 

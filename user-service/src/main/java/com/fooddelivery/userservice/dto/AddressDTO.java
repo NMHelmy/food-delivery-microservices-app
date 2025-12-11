@@ -7,7 +7,6 @@ public class AddressDTO {
 
     private Long id;
 
-    @NotNull(message = "User ID is required")
     private Long userId;
 
     @NotBlank(message = "Label is required")

@@ -7,7 +7,6 @@ public class DriverProfileDTO {
 
     private Long id;
 
-    @NotNull(message = "User ID is required")
     private Long userId;
 
     @NotBlank(message = "Vehicle type is required")
