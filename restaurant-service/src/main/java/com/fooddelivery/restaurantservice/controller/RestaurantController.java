@@ -49,13 +49,18 @@ public class RestaurantController {
 
     @GetMapping("/owner")
     public ResponseEntity<List<RestaurantResponse>> getMyRestaurants(HttpServletRequest request) {
-        String ownerId = request.getHeader("X-User-Id");
-        if (ownerId == null || ownerId.isEmpty()) {
+        String ownerIdHeader = request.getHeader("X-User-Id");
+        if (ownerIdHeader == null || ownerIdHeader.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        List<RestaurantResponse> restaurants = restaurantService.getRestaurantsByOwner(ownerId);
-        return ResponseEntity.ok(restaurants);
+        try {
+            Long ownerId = Long.parseLong(ownerIdHeader);
+            List<RestaurantResponse> restaurants = restaurantService.getRestaurantsByOwner(ownerId);
+            return ResponseEntity.ok(restaurants);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     @PostMapping
@@ -63,13 +68,18 @@ public class RestaurantController {
             @Valid @RequestBody RestaurantRequest request,
             HttpServletRequest httpRequest) {
 
-        String ownerId = httpRequest.getHeader("X-User-Id");
-        if (ownerId == null || ownerId.isEmpty()) {
+        String ownerIdHeader = httpRequest.getHeader("X-User-Id");
+        if (ownerIdHeader == null || ownerIdHeader.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        RestaurantResponse restaurant = restaurantService.createRestaurant(request, ownerId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(restaurant);
+        try {
+            Long ownerId = Long.parseLong(ownerIdHeader);
+            RestaurantResponse restaurant = restaurantService.createRestaurant(request, ownerId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(restaurant);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     @PutMapping("/{id}")
@@ -78,13 +88,18 @@ public class RestaurantController {
             @Valid @RequestBody RestaurantRequest request,
             HttpServletRequest httpRequest) {
 
-        String ownerId = httpRequest.getHeader("X-User-Id");
-        if (ownerId == null || ownerId.isEmpty()) {
+        String ownerIdHeader = httpRequest.getHeader("X-User-Id");
+        if (ownerIdHeader == null || ownerIdHeader.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        RestaurantResponse restaurant = restaurantService.updateRestaurant(id, request, ownerId);
-        return ResponseEntity.ok(restaurant);
+        try {
+            Long ownerId = Long.parseLong(ownerIdHeader);
+            RestaurantResponse restaurant = restaurantService.updateRestaurant(id, request, ownerId);
+            return ResponseEntity.ok(restaurant);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     @DeleteMapping("/{id}")
@@ -92,16 +107,21 @@ public class RestaurantController {
             @PathVariable Long id,
             HttpServletRequest httpRequest) {
 
-        String ownerId = httpRequest.getHeader("X-User-Id");
-        if (ownerId == null || ownerId.isEmpty()) {
+        String ownerIdHeader = httpRequest.getHeader("X-User-Id");
+        if (ownerIdHeader == null || ownerIdHeader.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        restaurantService.deleteRestaurant(id, ownerId);
+        try {
+            Long ownerId = Long.parseLong(ownerIdHeader);
+            restaurantService.deleteRestaurant(id, ownerId);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Restaurant deactivated successfully");
-        return ResponseEntity.ok(response);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Restaurant deactivated successfully");
+            return ResponseEntity.ok(response);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     @PatchMapping("/{id}/rating")
