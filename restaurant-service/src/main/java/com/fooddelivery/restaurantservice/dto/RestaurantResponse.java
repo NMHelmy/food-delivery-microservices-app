@@ -11,7 +11,7 @@ public class RestaurantResponse {
     private String cuisine;
     private Double rating;
     private Boolean isActive;
-    private String ownerId;
+    private Long ownerId;
     private String description;
     private String imageUrl;
     private LocalDateTime createdAt;
@@ -22,7 +22,7 @@ public class RestaurantResponse {
     }
 
     public RestaurantResponse(Long id, String name, String address, String phone, String cuisine,
-                              Double rating, Boolean isActive, String ownerId, String description,
+                              Double rating, Boolean isActive, Long ownerId, String description,
                               String imageUrl, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
@@ -95,11 +95,11 @@ public class RestaurantResponse {
         this.isActive = isActive;
     }
 
-    public String getOwnerId() {
+    public Long getOwnerId() {
         return ownerId;
     }
 
-    public void setOwnerId(String ownerId) {
+    public void setOwnerId(Long ownerId) {
         this.ownerId = ownerId;
     }
 

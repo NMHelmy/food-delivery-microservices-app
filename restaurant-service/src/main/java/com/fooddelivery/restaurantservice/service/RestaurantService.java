@@ -6,6 +6,8 @@ import com.fooddelivery.restaurantservice.models.Restaurant;
 import com.fooddelivery.restaurantservice.exception.ResourceNotFoundException;
 import com.fooddelivery.restaurantservice.exception.UnauthorizedException;
 import com.fooddelivery.restaurantservice.repository.RestaurantRepository;
+import com.fooddelivery.restaurantservice.feign.UserServiceClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,9 +18,12 @@ import java.util.stream.Collectors;
 public class RestaurantService {
 
     private final RestaurantRepository restaurantRepository;
+    private final UserServiceClient userServiceClient;
 
-    public RestaurantService(RestaurantRepository restaurantRepository) {
+    @Autowired
+    public RestaurantService(RestaurantRepository restaurantRepository, UserServiceClient userServiceClient) {
         this.restaurantRepository = restaurantRepository;
+        this.userServiceClient = userServiceClient;
     }
 
     @Transactional(readOnly = true)
@@ -53,7 +58,7 @@ public class RestaurantService {
     }
 
     @Transactional(readOnly = true)
-    public List<RestaurantResponse> getRestaurantsByOwner(String ownerId) {
+    public List<RestaurantResponse> getRestaurantsByOwner(Long ownerId) {
         return restaurantRepository.findByOwnerId(ownerId)
                 .stream()
                 .map(this::mapToResponse)
@@ -61,7 +66,12 @@ public class RestaurantService {
     }
 
     @Transactional
-    public RestaurantResponse createRestaurant(RestaurantRequest request, String ownerId) {
+    public RestaurantResponse createRestaurant(RestaurantRequest request, Long ownerId) {
+        try {
+            userServiceClient.getOwnerProfile(ownerId);
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid owner. User must have a restaurant owner profile.");
+        }
         Restaurant restaurant = new Restaurant();
         restaurant.setName(request.getName());
         restaurant.setAddress(request.getAddress());
@@ -78,7 +88,7 @@ public class RestaurantService {
     }
 
     @Transactional
-    public RestaurantResponse updateRestaurant(Long id, RestaurantRequest request, String ownerId) {
+    public RestaurantResponse updateRestaurant(Long id, RestaurantRequest request, Long ownerId) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
 
@@ -98,7 +108,7 @@ public class RestaurantService {
     }
 
     @Transactional
-    public void deleteRestaurant(Long id, String ownerId) {
+    public void deleteRestaurant(Long id, Long ownerId) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
 

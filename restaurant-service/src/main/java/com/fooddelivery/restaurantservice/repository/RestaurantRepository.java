@@ -13,7 +13,7 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
     List<Restaurant> findByCuisineAndIsActiveTrue(String cuisine);
 
-    List<Restaurant> findByOwnerId(String ownerId);
+    List<Restaurant> findByOwnerId(Long ownerId);
 
     List<Restaurant> findByNameContainingIgnoreCaseAndIsActiveTrue(String name);
 }
