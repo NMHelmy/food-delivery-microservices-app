@@ -22,3 +22,9 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
+
+# Application configuration files (contain sensitive data)
+**/src/main/resources/application.yml
+**/src/main/resources/application.properties
+**/application-*.yml
+**/application-*.properties
