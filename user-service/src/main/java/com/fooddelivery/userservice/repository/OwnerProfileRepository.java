@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface OwnerProfileRepository extends JpaRepository<OwnerProfile, Long> {
     Optional<OwnerProfile> findByUserId(Long userId);
     boolean existsByUserId(Long userId);
+    void deleteByUserId(Long userId);
 }

@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface CustomerProfileRepository extends JpaRepository<CustomerProfile, Long> {
     Optional<CustomerProfile> findByUserId(Long userId);
     boolean existsByUserId(Long userId);
+    void deleteByUserId(Long userId);
+
 }
