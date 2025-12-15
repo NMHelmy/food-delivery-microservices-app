@@ -13,14 +13,13 @@ public class GatewayConfig {
         return builder.routes()
                 .route("auth_route", r -> r.path("/auth/**")
                         .uri("lb://auth-service"))
-                .route("catalog_route", r -> r.path("/catalog/**")
-                        .uri("lb://catalog-service"))
-                .route("cart_route", r -> r.path("/cart/**")
-                        .uri("lb://cart-service"))
-                .route("order_route", r -> r.path("/order/**")
+                .route("user_route", r -> r.path("/api/users/**")
+                        .uri("lb://user-service"))
+                .route("restaurant_route", r -> r.path("/api/restaurants/**")
+                        .uri("lb://restaurant-service"))
+                .route("order_route", r -> r.path("/api/orders/**")
                         .uri("lb://order-service"))
-                .route("test_route", r -> r.path("/test/**")
-                        .uri("lb://test-service"))
+
                 .build();
     }
 }
