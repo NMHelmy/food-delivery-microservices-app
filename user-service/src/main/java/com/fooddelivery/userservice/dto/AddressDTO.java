@@ -53,6 +53,6 @@ public class AddressDTO {
     public String getLandmark() { return landmark; }
     public void setLandmark(String landmark) { this.landmark = landmark; }
 
-    public boolean isDefault() { return isDefault; }
-    public void setDefault(boolean aDefault) { isDefault = aDefault; }
+    public boolean getIsDefault() { return isDefault; }
+    public void setIsDefault(boolean isDefault) { this.isDefault = isDefault;}
 }

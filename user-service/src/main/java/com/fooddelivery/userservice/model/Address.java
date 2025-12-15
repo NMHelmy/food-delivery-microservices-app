@@ -1,5 +1,6 @@
 package com.fooddelivery.userservice.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -31,7 +32,8 @@ public class Address {
 
     private String landmark;
 
-    @Column(nullable = false)
+    @Column(name = "is_default", nullable = false)
+    @JsonProperty("isDefault")
     private boolean isDefault = false;
 
     @Column(nullable = false)
@@ -75,8 +77,8 @@ public class Address {
     public String getLandmark() { return landmark; }
     public void setLandmark(String landmark) { this.landmark = landmark; }
 
-    public boolean isDefault() { return isDefault; }
-    public void setDefault(boolean aDefault) { isDefault = aDefault; }
+    public boolean getIsDefault() { return isDefault; }
+    public void setIsDefault(boolean isDefault) { this.isDefault = isDefault;}
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
