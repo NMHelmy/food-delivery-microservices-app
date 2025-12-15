@@ -6,16 +6,13 @@ import com.fooddelivery.userservice.model.Address;
 import com.fooddelivery.userservice.model.CustomerProfile;
 import com.fooddelivery.userservice.repository.AddressRepository;
 import com.fooddelivery.userservice.repository.CustomerProfileRepository;
+import com.fooddelivery.userservice.exception.BadRequestException;
+import com.fooddelivery.userservice.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fooddelivery.userservice.feign.AuthServiceClient;
-import com.fooddelivery.userservice.exception.BadRequestException;
-import com.fooddelivery.userservice.exception.ResourceNotFoundException;
-import com.fooddelivery.userservice.exception.UnauthorizedException;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class CustomerService {
@@ -26,18 +23,11 @@ public class CustomerService {
     @Autowired
     private AddressRepository addressRepository;
 
-    @Autowired
-    private AuthServiceClient authServiceClient;
-
     // Customer Profile Methods
     @Transactional
     public CustomerProfile createCustomerProfile(CustomerProfileDTO dto) {
-        Map<String, Object> userInfo = authServiceClient.getUserInfo(dto.getUserId());
-        String role = (String) userInfo.get("role");
-
-        if (!"CUSTOMER".equals(role)) {
-            throw new UnauthorizedException("Only users with CUSTOMER role can create customer profiles");
-        }
+        // Controller already validated user has CUSTOMER role via X-User-Role header
+        // Just verify profile doesn't already exist
 
         if (customerProfileRepository.existsByUserId(dto.getUserId())) {
             throw new BadRequestException("Customer profile already exists for this user");
@@ -76,16 +66,16 @@ public class CustomerService {
 
     // Address Methods
     @Transactional
-    public Address addAddress(AddressDTO dto) {
+    public Address createAddress(AddressDTO dto) {
         // If this is the first address or marked as default, set it as default
         List<Address> existingAddresses = addressRepository.findByUserId(dto.getUserId());
 
-        if (dto.isDefault() || existingAddresses.isEmpty()) {
+        if (dto.getIsDefault() || existingAddresses.isEmpty()) {
             // Unset any existing default address
             existingAddresses.stream()
-                    .filter(Address::isDefault)
+                    .filter(Address::getIsDefault)
                     .forEach(addr -> {
-                        addr.setDefault(false);
+                        addr.setIsDefault(false);
                         addressRepository.save(addr);
                     });
         }
@@ -98,7 +88,7 @@ public class CustomerService {
         address.setState(dto.getState());
         address.setZipCode(dto.getZipCode());
         address.setLandmark(dto.getLandmark());
-        address.setDefault(dto.isDefault() || existingAddresses.isEmpty());
+        address.setIsDefault(dto.getIsDefault() || existingAddresses.isEmpty());
 
         return addressRepository.save(address);
     }
@@ -116,22 +106,34 @@ public class CustomerService {
     public Address updateAddress(Long addressId, AddressDTO dto) {
         Address address = getAddressById(addressId);
 
-        if (dto.getLabel() != null) address.setLabel(dto.getLabel());
-        if (dto.getStreetAddress() != null) address.setStreetAddress(dto.getStreetAddress());
-        if (dto.getCity() != null) address.setCity(dto.getCity());
-        if (dto.getState() != null) address.setState(dto.getState());
-        if (dto.getZipCode() != null) address.setZipCode(dto.getZipCode());
-        if (dto.getLandmark() != null) address.setLandmark(dto.getLandmark());
+        if (dto.getLabel() != null) {
+            address.setLabel(dto.getLabel());
+        }
+        if (dto.getStreetAddress() != null) {
+            address.setStreetAddress(dto.getStreetAddress());
+        }
+        if (dto.getCity() != null) {
+            address.setCity(dto.getCity());
+        }
+        if (dto.getState() != null) {
+            address.setState(dto.getState());
+        }
+        if (dto.getZipCode() != null) {
+            address.setZipCode(dto.getZipCode());
+        }
+        if (dto.getLandmark() != null) {
+            address.setLandmark(dto.getLandmark());
+        }
 
         // If setting this as default, unset other defaults
-        if (dto.isDefault() && !address.isDefault()) {
+        if (dto.getIsDefault() && !address.getIsDefault()) {
             addressRepository.findByUserId(address.getUserId()).stream()
-                    .filter(Address::isDefault)
+                    .filter(Address::getIsDefault)
                     .forEach(addr -> {
-                        addr.setDefault(false);
+                        addr.setIsDefault(false);
                         addressRepository.save(addr);
                     });
-            address.setDefault(true);
+            address.setIsDefault(true);
         }
 
         return addressRepository.save(address);
@@ -146,5 +148,9 @@ public class CustomerService {
     public Address getDefaultAddress(Long userId) {
         return addressRepository.findByUserIdAndIsDefault(userId, true)
                 .orElseThrow(() -> new ResourceNotFoundException("No default address found for user with id: " + userId));
+    }
+
+    public void deleteCustomerProfile(Long userId) {
+        customerProfileRepository.deleteByUserId(userId);
     }
 }

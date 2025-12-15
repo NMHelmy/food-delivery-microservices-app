@@ -2,19 +2,15 @@ package com.fooddelivery.userservice.service;
 
 import com.fooddelivery.userservice.dto.DriverProfileDTO;
 import com.fooddelivery.userservice.model.DriverProfile;
+import com.fooddelivery.userservice.model.DriverStatus;
 import com.fooddelivery.userservice.repository.DriverProfileRepository;
+import com.fooddelivery.userservice.exception.BadRequestException;
+import com.fooddelivery.userservice.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fooddelivery.userservice.feign.AuthServiceClient;
-import com.fooddelivery.userservice.model.DriverStatus;
-import com.fooddelivery.userservice.exception.BadRequestException;
-import com.fooddelivery.userservice.exception.ResourceNotFoundException;
-import com.fooddelivery.userservice.exception.UnauthorizedException;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class DriverService {
@@ -22,21 +18,8 @@ public class DriverService {
     @Autowired
     private DriverProfileRepository driverProfileRepository;
 
-    @Autowired
-    private AuthServiceClient authServiceClient;
-
     @Transactional
     public DriverProfile createDriverProfile(DriverProfileDTO dto) {
-        try {
-            Map<String, Object> userInfo = authServiceClient.getUserInfo(dto.getUserId());
-            String role = (String) userInfo.get("role");
-
-            if (!"DELIVERY_DRIVER".equals(role)) {
-                throw new UnauthorizedException("Only users with DELIVERY_DRIVER role can create driver profiles");
-            }
-        } catch (Exception e) {
-            throw new BadRequestException("Failed to validate user role: " + e.getMessage());
-        }
 
         if (driverProfileRepository.existsByUserId(dto.getUserId())) {
             throw new BadRequestException("Driver profile already exists for this user");
@@ -53,7 +36,7 @@ public class DriverService {
 
     public DriverProfile getDriverProfile(Long userId) {
         return driverProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Driver profile not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Driver profile not found for user with id: " + userId));
     }
 
     @Transactional
@@ -105,7 +88,13 @@ public class DriverService {
     public List<DriverProfile> getAvailableDrivers() {
         return driverProfileRepository.findByStatus(DriverStatus.AVAILABLE);
     }
+
     public List<DriverProfile> getAllDrivers() {
         return driverProfileRepository.findAll();
     }
+
+    public void deleteDriverProfile(Long userId) {
+        driverProfileRepository.deleteByUserId(userId);
+    }
+
 }

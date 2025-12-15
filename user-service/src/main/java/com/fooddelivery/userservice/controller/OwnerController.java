@@ -1,9 +1,10 @@
 package com.fooddelivery.userservice.controller;
 
 import com.fooddelivery.userservice.dto.OwnerProfileDTO;
-import com.fooddelivery.userservice.feign.AuthServiceClient;
 import com.fooddelivery.userservice.model.OwnerProfile;
 import com.fooddelivery.userservice.service.OwnerService;
+import com.fooddelivery.userservice.exception.UnauthorizedException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,26 +20,40 @@ public class OwnerController {
     @Autowired
     private OwnerService ownerService;
 
-    @Autowired
-    private AuthServiceClient authServiceClient;
-
-    private Long validateTokenAndGetUserId(String token) {
-        Map<String, Object> response = authServiceClient.validateToken(Map.of("token", token));
-
-        if (!(Boolean) response.get("valid")) {
-            throw new RuntimeException("Invalid or expired token");
+    private Long getUserIdFromHeader(HttpServletRequest request) {
+        String userIdHeader = request.getHeader("X-User-Id");
+        if (userIdHeader == null || userIdHeader.isEmpty()) {
+            throw new UnauthorizedException("User ID not found in request headers");
         }
+        try {
+            return Long.parseLong(userIdHeader);
+        } catch (NumberFormatException e) {
+            throw new UnauthorizedException("Invalid User ID format");
+        }
+    }
 
-        return ((Number) response.get("userId")).longValue();
+    private String getUserRoleFromHeader(HttpServletRequest request) {
+        String roleHeader = request.getHeader("X-User-Role");
+        if (roleHeader == null || roleHeader.isEmpty()) {
+            throw new UnauthorizedException("User role not found in request headers");
+        }
+        return roleHeader;
+    }
+
+    private void validateOwnerRole(HttpServletRequest request) {
+        String role = getUserRoleFromHeader(request);
+        if (!"RESTAURANT_OWNER".equals(role)) {
+            throw new UnauthorizedException("Only RESTAURANT_OWNER role can access this endpoint");
+        }
     }
 
     @PostMapping("/profile")
     public ResponseEntity<?> createProfile(
-            @RequestHeader("Authorization") String authHeader,
-            @Valid @RequestBody OwnerProfileDTO dto) {
+            @Valid @RequestBody OwnerProfileDTO dto,
+            HttpServletRequest request) {
         try {
-            String token = authHeader.replace("Bearer ", "");
-            Long userId = validateTokenAndGetUserId(token);
+            Long userId = getUserIdFromHeader(request);
+            validateOwnerRole(request);
 
             dto.setUserId(userId);
 
@@ -50,19 +65,11 @@ public class OwnerController {
         }
     }
 
-    @GetMapping("/profile/{userId}")
-    public ResponseEntity<?> getProfile(
-            @PathVariable Long userId,
-            @RequestHeader("Authorization") String authHeader) {  // ADDED
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(HttpServletRequest request) {
         try {
-            String token = authHeader.replace("Bearer ", "");
-            Long requestingUserId = validateTokenAndGetUserId(token);
-
-            // ADDED: Only allow users to view their own profile
-            if (!requestingUserId.equals(userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "You can only view your own profile"));
-            }
+            Long userId = getUserIdFromHeader(request);
+            validateOwnerRole(request);
 
             OwnerProfile profile = ownerService.getOwnerProfile(userId);
             return ResponseEntity.ok(profile);
@@ -72,25 +79,33 @@ public class OwnerController {
         }
     }
 
-    @PutMapping("/profile/{userId}")
+    @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(
-            @PathVariable Long userId,
             @Valid @RequestBody OwnerProfileDTO dto,
-            @RequestHeader("Authorization") String authHeader) {  // ADDED
+            HttpServletRequest request) {
         try {
-            String token = authHeader.replace("Bearer ", "");
-            Long requestingUserId = validateTokenAndGetUserId(token);
-
-            // ADDED: Only allow users to update their own profile
-            if (!requestingUserId.equals(userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "You can only update your own profile"));
-            }
+            Long userId = getUserIdFromHeader(request);
+            validateOwnerRole(request);
 
             OwnerProfile profile = ownerService.updateOwnerProfile(userId, dto);
             return ResponseEntity.ok(profile);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // This endpoint is for internal service-to-service communication (e.g., Restaurant Service).
+    // It does NOT require authentication headers.
+    // WARNING: Should NOT be exposed through API Gateway!
+    // Only accessible directly to microservices within the private network.
+    @GetMapping("/profile/{userId}")
+    public ResponseEntity<?> getProfileByUserId(@PathVariable Long userId) {
+        try {
+            OwnerProfile profile = ownerService.getOwnerProfile(userId);
+            return ResponseEntity.ok(profile);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
     }

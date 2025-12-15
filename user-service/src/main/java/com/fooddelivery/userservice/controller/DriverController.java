@@ -1,9 +1,10 @@
 package com.fooddelivery.userservice.controller;
 
 import com.fooddelivery.userservice.dto.DriverProfileDTO;
-import com.fooddelivery.userservice.feign.AuthServiceClient;
 import com.fooddelivery.userservice.model.DriverProfile;
 import com.fooddelivery.userservice.service.DriverService;
+import com.fooddelivery.userservice.exception.UnauthorizedException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,26 +21,40 @@ public class DriverController {
     @Autowired
     private DriverService driverService;
 
-    @Autowired
-    private AuthServiceClient authServiceClient;
-
-    private Long validateTokenAndGetUserId(String token) {
-        Map<String, Object> response = authServiceClient.validateToken(Map.of("token", token));
-
-        if (!(Boolean) response.get("valid")) {
-            throw new RuntimeException("Invalid or expired token");
+    private Long getUserIdFromHeader(HttpServletRequest request) {
+        String userIdHeader = request.getHeader("X-User-Id");
+        if (userIdHeader == null || userIdHeader.isEmpty()) {
+            throw new UnauthorizedException("User ID not found in request headers");
         }
+        try {
+            return Long.parseLong(userIdHeader);
+        } catch (NumberFormatException e) {
+            throw new UnauthorizedException("Invalid User ID format");
+        }
+    }
 
-        return ((Number) response.get("userId")).longValue();
+    private String getUserRoleFromHeader(HttpServletRequest request) {
+        String roleHeader = request.getHeader("X-User-Role");
+        if (roleHeader == null || roleHeader.isEmpty()) {
+            throw new UnauthorizedException("User role not found in request headers");
+        }
+        return roleHeader;
+    }
+
+    private void validateDriverRole(HttpServletRequest request) {
+        String role = getUserRoleFromHeader(request);
+        if (!"DELIVERY_DRIVER".equals(role)) {
+            throw new UnauthorizedException("Only DELIVERY_DRIVER role can access this endpoint");
+        }
     }
 
     @PostMapping("/profile")
     public ResponseEntity<?> createProfile(
-            @RequestHeader("Authorization") String authHeader,
-            @Valid @RequestBody DriverProfileDTO dto) {
+            @Valid @RequestBody DriverProfileDTO dto,
+            HttpServletRequest request) {
         try {
-            String token = authHeader.replace("Bearer ", "");
-            Long userId = validateTokenAndGetUserId(token);
+            Long userId = getUserIdFromHeader(request);
+            validateDriverRole(request);
 
             dto.setUserId(userId);
 
@@ -51,18 +66,11 @@ public class DriverController {
         }
     }
 
-    @GetMapping("/profile/{userId}")
-    public ResponseEntity<?> getProfile(
-            @PathVariable Long userId,
-            @RequestHeader("Authorization") String authHeader) {
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(HttpServletRequest request) {
         try {
-            String token = authHeader.replace("Bearer ", "");
-            Long requestingUserId = validateTokenAndGetUserId(token);
-
-            if (!requestingUserId.equals(userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "You can only view your own profile"));
-            }
+            Long userId = getUserIdFromHeader(request);
+            validateDriverRole(request);
 
             DriverProfile profile = driverService.getDriverProfile(userId);
             return ResponseEntity.ok(profile);
@@ -72,19 +80,13 @@ public class DriverController {
         }
     }
 
-    @PutMapping("/profile/{userId}")
+    @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(
-            @PathVariable Long userId,
             @Valid @RequestBody DriverProfileDTO dto,
-            @RequestHeader("Authorization") String authHeader) {
+            HttpServletRequest request) {
         try {
-            String token = authHeader.replace("Bearer ", "");
-            Long requestingUserId = validateTokenAndGetUserId(token);
-
-            if (!requestingUserId.equals(userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "You can only update your own profile"));
-            }
+            Long userId = getUserIdFromHeader(request);
+            validateDriverRole(request);
 
             DriverProfile profile = driverService.updateDriverProfile(userId, dto);
             return ResponseEntity.ok(profile);
@@ -94,19 +96,13 @@ public class DriverController {
         }
     }
 
-    @PutMapping("/{userId}/status")
+    @PutMapping("/status")
     public ResponseEntity<?> updateStatus(
-            @PathVariable Long userId,
             @RequestBody Map<String, String> request,
-            @RequestHeader("Authorization") String authHeader) {
+            HttpServletRequest httpRequest) {
         try {
-            String token = authHeader.replace("Bearer ", "");
-            Long requestingUserId = validateTokenAndGetUserId(token);
-
-            if (!requestingUserId.equals(userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "You can only update your own status"));
-            }
+            Long userId = getUserIdFromHeader(httpRequest);
+            validateDriverRole(httpRequest);
 
             String status = request.get("status");
             DriverProfile profile = driverService.updateDriverStatus(userId, status);
@@ -117,19 +113,13 @@ public class DriverController {
         }
     }
 
-    @PutMapping("/{userId}/location")
+    @PutMapping("/location")
     public ResponseEntity<?> updateLocation(
-            @PathVariable Long userId,
             @RequestBody Map<String, Double> request,
-            @RequestHeader("Authorization") String authHeader) {
+            HttpServletRequest httpRequest) {
         try {
-            String token = authHeader.replace("Bearer ", "");
-            Long requestingUserId = validateTokenAndGetUserId(token);
-
-            if (!requestingUserId.equals(userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "You can only update your own location"));
-            }
+            Long userId = getUserIdFromHeader(httpRequest);
+            validateDriverRole(httpRequest);
 
             Double latitude = request.get("latitude");
             Double longitude = request.get("longitude");
@@ -148,18 +138,10 @@ public class DriverController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<?> getAllDrivers(
-            @RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> getAllDrivers(HttpServletRequest request) {
         try {
-            String token = authHeader.replace("Bearer ", "");
-            Map<String, Object> response = authServiceClient.validateToken(Map.of("token", token));
+            String role = getUserRoleFromHeader(request);
 
-            if (!(Boolean) response.get("valid")) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Invalid or expired token"));
-            }
-
-            String role = (String) response.get("role");
             if (!"ADMIN".equals(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Only administrators can view all drivers"));
@@ -169,6 +151,20 @@ public class DriverController {
             return ResponseEntity.ok(drivers);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // This endpoint is for internal service-to-service communication.
+    // It does NOT require authentication headers.
+    // WARNING: Should NOT be exposed through API Gateway!
+    @GetMapping("/profile/{userId}")
+    public ResponseEntity<?> getProfileByUserId(@PathVariable Long userId) {
+        try {
+            DriverProfile profile = driverService.getDriverProfile(userId);
+            return ResponseEntity.ok(profile);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
     }
