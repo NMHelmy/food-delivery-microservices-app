@@ -52,16 +52,23 @@ public class MenuItemService {
     }
 
     @Transactional(readOnly = true)
-    public MenuItemResponse getMenuItemById(Long id) {
+    public MenuItemResponse getMenuItemById(Long restaurantId, Long id) {
         MenuItem menuItem = menuItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with id: " + id));
+
+        if (!menuItem.getRestaurantId().equals(restaurantId)) {
+            throw new ResourceNotFoundException("Menu item not found");
+        }
+
         return mapToResponse(menuItem);
     }
 
     @Transactional
-    public MenuItemResponse createMenuItem(Long restaurantId, MenuItemRequest request, String ownerId) {
+    public MenuItemResponse createMenuItem(Long restaurantId, MenuItemRequest request, String ownerIdStr) {
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + restaurantId));
+
+        Long ownerId = Long.parseLong(ownerIdStr);
 
         if (!restaurant.getOwnerId().equals(ownerId)) {
             throw new UnauthorizedException("You are not authorized to add menu items to this restaurant");
@@ -81,12 +88,18 @@ public class MenuItemService {
     }
 
     @Transactional
-    public MenuItemResponse updateMenuItem(Long id, MenuItemRequest request, String ownerId) {
+    public MenuItemResponse updateMenuItem(Long restaurantId, Long id, MenuItemRequest request, String ownerIdStr) {
         MenuItem menuItem = menuItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with id: " + id));
 
+        if (!menuItem.getRestaurantId().equals(restaurantId)) {
+            throw new ResourceNotFoundException("Menu item not found with id: " + id);
+        }
+
         Restaurant restaurant = restaurantRepository.findById(menuItem.getRestaurantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found"));
+
+        Long ownerId = Long.parseLong(ownerIdStr);
 
         if (!restaurant.getOwnerId().equals(ownerId)) {
             throw new UnauthorizedException("You are not authorized to update this menu item");
@@ -106,13 +119,18 @@ public class MenuItemService {
     }
 
     @Transactional
-    public void deleteMenuItem(Long id, String ownerId) {
+    public void deleteMenuItem(Long restaurantId, Long id, String ownerIdStr) {
         MenuItem menuItem = menuItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with id: " + id));
+
+        if (!menuItem.getRestaurantId().equals(restaurantId)) {
+            throw new ResourceNotFoundException("Menu item not found with id: " + id);
+        }
 
         Restaurant restaurant = restaurantRepository.findById(menuItem.getRestaurantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found"));
 
+        Long ownerId = Long.parseLong(ownerIdStr);
         if (!restaurant.getOwnerId().equals(ownerId)) {
             throw new UnauthorizedException("You are not authorized to delete this menu item");
         }
@@ -121,13 +139,18 @@ public class MenuItemService {
     }
 
     @Transactional
-    public MenuItemResponse toggleAvailability(Long id, String ownerId) {
+    public MenuItemResponse toggleAvailability(Long restaurantId, Long id, String ownerIdStr) {
         MenuItem menuItem = menuItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with id: " + id));
+
+        if (!menuItem.getRestaurantId().equals(restaurantId)) {
+            throw new ResourceNotFoundException("Menu item not found with id: " + id);
+        }
 
         Restaurant restaurant = restaurantRepository.findById(menuItem.getRestaurantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found"));
 
+        Long ownerId = Long.parseLong(ownerIdStr);
         if (!restaurant.getOwnerId().equals(ownerId)) {
             throw new UnauthorizedException("You are not authorized to update this menu item");
         }

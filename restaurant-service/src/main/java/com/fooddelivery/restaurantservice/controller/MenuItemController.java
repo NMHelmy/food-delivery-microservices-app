@@ -41,8 +41,10 @@ public class MenuItemController {
     }
 
     @GetMapping("/{itemId}")
-    public ResponseEntity<MenuItemResponse> getMenuItemById(@PathVariable Long itemId) {
-        MenuItemResponse item = menuItemService.getMenuItemById(itemId);
+    public ResponseEntity<MenuItemResponse> getMenuItemById(
+            @PathVariable Long restaurantId,
+            @PathVariable Long itemId) {
+        MenuItemResponse item = menuItemService.getMenuItemById(restaurantId, itemId);
         return ResponseEntity.ok(item);
     }
 
@@ -63,6 +65,7 @@ public class MenuItemController {
 
     @PutMapping("/{itemId}")
     public ResponseEntity<MenuItemResponse> updateMenuItem(
+            @PathVariable Long restaurantId,
             @PathVariable Long itemId,
             @Valid @RequestBody MenuItemRequest request,
             HttpServletRequest httpRequest) {
@@ -72,12 +75,13 @@ public class MenuItemController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        MenuItemResponse item = menuItemService.updateMenuItem(itemId, request, ownerId);
+        MenuItemResponse item = menuItemService.updateMenuItem(restaurantId, itemId, request, ownerId);
         return ResponseEntity.ok(item);
     }
 
     @DeleteMapping("/{itemId}")
     public ResponseEntity<Map<String, String>> deleteMenuItem(
+            @PathVariable Long restaurantId,
             @PathVariable Long itemId,
             HttpServletRequest httpRequest) {
 
@@ -86,7 +90,7 @@ public class MenuItemController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        menuItemService.deleteMenuItem(itemId, ownerId);
+        menuItemService.deleteMenuItem(restaurantId, itemId, ownerId);
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Menu item deleted successfully");
@@ -95,6 +99,7 @@ public class MenuItemController {
 
     @PatchMapping("/{itemId}/availability")
     public ResponseEntity<MenuItemResponse> toggleAvailability(
+            @PathVariable Long restaurantId,
             @PathVariable Long itemId,
             HttpServletRequest httpRequest) {
 
@@ -103,7 +108,7 @@ public class MenuItemController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        MenuItemResponse item = menuItemService.toggleAvailability(itemId, ownerId);
+        MenuItemResponse item = menuItemService.toggleAvailability(restaurantId, itemId, ownerId);
         return ResponseEntity.ok(item);
     }
 }

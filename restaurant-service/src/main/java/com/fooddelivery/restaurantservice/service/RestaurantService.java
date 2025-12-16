@@ -36,7 +36,7 @@ public class RestaurantService {
 
     @Transactional(readOnly = true)
     public RestaurantResponse getRestaurantById(Long id) {
-        Restaurant restaurant = restaurantRepository.findById(id)
+        Restaurant restaurant = restaurantRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
         return mapToResponse(restaurant);
     }
@@ -59,7 +59,7 @@ public class RestaurantService {
 
     @Transactional(readOnly = true)
     public List<RestaurantResponse> getRestaurantsByOwner(Long ownerId) {
-        return restaurantRepository.findByOwnerId(ownerId)
+        return restaurantRepository.findByOwnerIdAndIsActiveTrue(ownerId)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());

@@ -27,18 +27,24 @@ public class JwtAuthFilter implements WebFilter {
             "/eureka/"          // Eureka endpoints
     );
 
+    // Specific public GET endpoints for restaurants
+    private static final List<String> PUBLIC_GET_PATHS = List.of(
+            "/api/restaurants" // Only the list endpoint (will check exact match or with query params)
+    );
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
+        String method = exchange.getRequest().getMethod().name();
 
-        // Check if path is public
+        // Check if path is public (auth, actuator, eureka)
         if (isPublicPath(path)) {
             return chain.filter(exchange);
         }
 
-        // GET /api/restaurants is public (browsing restaurants)
-        if ("GET".equals(exchange.getRequest().getMethod().name()) &&
-                path.startsWith("/api/restaurants")) {
+        // Allow public GET access ONLY to specific endpoints
+        // GET /api/restaurants (list all) and GET /api/restaurants/{id} (get by id)
+        if ("GET".equals(method) && isPublicGetPath(path)) {
             return chain.filter(exchange);
         }
 
@@ -57,7 +63,7 @@ public class JwtAuthFilter implements WebFilter {
             // Extract user information
             String userId = String.valueOf(claims.get("userId"));
             String role = String.valueOf(claims.get("role"));
-            String email = String.valueOf(claims.getSubject());
+            String email = claims.getSubject();
 
             // CRITICAL: Create modified request with headers
             ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
@@ -83,5 +89,21 @@ public class JwtAuthFilter implements WebFilter {
 
     private boolean isPublicPath(String path) {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+    }
+
+    private boolean isPublicGetPath(String path) {
+        // Allow GET /api/restaurants (exact match or with query params)
+        if (path.equals("/api/restaurants")) {
+            return true;
+        }
+
+        // Allow GET /api/restaurants/{id} where {id} is a number
+        if (path.matches("/api/restaurants/\\d+")) {
+            return true;
+        }
+
+        // All other restaurant endpoints require auth
+        // This includes: /api/restaurants/owner, /api/restaurants/{id}/rating, etc.
+        return false;
     }
 }
