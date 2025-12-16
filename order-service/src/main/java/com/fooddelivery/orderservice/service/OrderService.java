@@ -14,9 +14,12 @@ import com.fooddelivery.orderservice.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,11 +55,37 @@ public class OrderService {
         order.setPaymentStatus(PaymentStatus.PENDING);
 
         for (OrderItemDTO itemDTO : dto.getItems()) {
+            // Fetch menu item details to get the ACTUAL price
+            Map<String, Object> menuItem = fetchMenuItem(dto.getRestaurantId(), itemDTO.getMenuItemId());
+
+            // Verify menu item is available
+            Boolean isAvailable = (Boolean) menuItem.get("isAvailable");
+            if (isAvailable == null || !isAvailable) {
+                throw new BadRequestException(
+                        "Menu item " + menuItem.get("name") + " is currently unavailable"
+                );
+            }
+
             OrderItem item = new OrderItem();
             item.setMenuItemId(itemDTO.getMenuItemId());
-            item.setItemName(itemDTO.getItemName());
+
+            item.setItemName((String) menuItem.get("name"));
+
             item.setQuantity(itemDTO.getQuantity());
-            item.setPrice(itemDTO.getPrice());
+
+            Object priceObj = menuItem.get("price");
+            BigDecimal actualPrice;
+            if (priceObj instanceof Double) {
+                actualPrice = BigDecimal.valueOf((Double) priceObj);
+            } else if (priceObj instanceof Integer) {
+                actualPrice = BigDecimal.valueOf((Integer) priceObj);
+            } else if (priceObj instanceof BigDecimal) {
+                actualPrice = (BigDecimal) priceObj;
+            } else {
+                throw new BadRequestException("Invalid price format for menu item " + itemDTO.getMenuItemId());
+            }
+            item.setPrice(actualPrice);
+
             item.setCustomizations(itemDTO.getCustomizations());
             order.addItem(item);
         }
@@ -231,11 +260,40 @@ public class OrderService {
     private void validateDeliveryAddress(Long customerId, Long addressId) {
         try {
             // Get customer's addresses and verify the address exists
-            Object addresses = userServiceClient.getCustomerAddresses(customerId);
+            Object addresses = userServiceClient.getCustomerAddresses(
+                    String.valueOf(customerId),
+                    "CUSTOMER",
+                    addressId
+            );
             // In a real implementation, you'd parse the response and check if addressId exists
             // For now, we'll trust that if the call succeeds, the address is valid
         } catch (Exception e) {
             throw new BadRequestException("Invalid delivery address for customer " + customerId);
+        }
+    }
+
+    public boolean verifyRestaurantOwnership(Long restaurantId, Long userId) {
+        try {
+            // Call Restaurant Service to verify ownership
+            Map<String, Object> restaurant = restaurantServiceClient.getRestaurant(restaurantId);
+
+            // Extract ownerId from the restaurant response
+            Object ownerIdObj = restaurant.get("ownerId");
+            Long ownerId;
+
+            if (ownerIdObj instanceof Integer) {
+                ownerId = ((Integer) ownerIdObj).longValue();
+            } else if (ownerIdObj instanceof Long) {
+                ownerId = (Long) ownerIdObj;
+            } else {
+                return false;
+            }
+
+            return ownerId.equals(userId);
+        } catch (Exception e) {
+            // Log the error
+            // Fail closed - deny access on error
+            return false;
         }
     }
 
@@ -249,6 +307,17 @@ public class OrderService {
                                 " not found in restaurant " + restaurantId
                 );
             }
+        }
+    }
+
+    private Map<String, Object> fetchMenuItem(Long restaurantId, Long menuItemId) {
+        try {
+            return restaurantServiceClient.getMenuItem(restaurantId, menuItemId);
+        } catch (Exception e) {
+            throw new BadRequestException(
+                    "Menu item with id " + menuItemId +
+                            " not found in restaurant " + restaurantId
+            );
         }
     }
 

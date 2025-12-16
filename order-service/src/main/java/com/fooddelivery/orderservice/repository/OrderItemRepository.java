@@ -11,4 +11,5 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
     // Find all items for an order
     List<OrderItem> findByOrderId(Long orderId);
+
 }

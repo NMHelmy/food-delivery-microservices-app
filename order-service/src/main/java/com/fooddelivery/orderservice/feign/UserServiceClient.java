@@ -3,6 +3,7 @@ package com.fooddelivery.orderservice.feign;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.Map;
 
@@ -18,6 +19,10 @@ public interface UserServiceClient {
     Map<String, Object> getDriverProfile(@PathVariable("userId") Long userId);
 
     // Verify address exists and belongs to customer
-    @GetMapping("/users/customer/{userId}/addresses")
-    Object getCustomerAddresses(@PathVariable("userId") Long userId);
+    @GetMapping("/users/customer/addresses/{addressId}")
+    Object getCustomerAddresses(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Role") String role,
+            @PathVariable("addressId") Long addressId
+    );
 }

@@ -51,10 +51,6 @@ public class CustomerController {
         }
     }
 
-    // ========================================
-    // CUSTOMER PROFILE ENDPOINTS (Clean - No userId in URL)
-    // ========================================
-
     @PostMapping("/profile")
     public ResponseEntity<CustomerProfile> createProfile(
             @Valid @RequestBody CustomerProfileDTO dto,
