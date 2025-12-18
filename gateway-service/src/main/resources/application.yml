@@ -37,6 +37,12 @@ spring:
           predicates:
             - Path=/orders/**
 
+        # Delivery Service Routes
+        - id: delivery-service
+          uri: lb://DELIVERY-SERVICE
+          predicates:
+            - Path=/deliveries/**
+
       # CORS Configuration
       globalcors:
         cors-configurations:
