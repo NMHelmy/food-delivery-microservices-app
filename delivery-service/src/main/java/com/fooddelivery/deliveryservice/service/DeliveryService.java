@@ -8,13 +8,16 @@ import com.fooddelivery.deliveryservice.feign.UserServiceClient;
 import com.fooddelivery.deliveryservice.model.Delivery;
 import com.fooddelivery.deliveryservice.model.DeliveryStatus;
 import com.fooddelivery.deliveryservice.repository.DeliveryRepository;
+import com.fooddelivery.deliveryservice.feign.RestaurantServiceClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 public class DeliveryService {
@@ -27,6 +30,16 @@ public class DeliveryService {
 
     @Autowired
     private UserServiceClient userServiceClient;
+
+    @Autowired
+    private RestaurantServiceClient restaurantServiceClient;
+
+    private Long getLongValue(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return ((Integer) value).longValue();
+        if (value instanceof Long) return (Long) value;
+        throw new BadRequestException("Invalid numeric value: " + value);
+    }
 
     @Transactional
     public DeliveryResponseDTO createDelivery(CreateDeliveryDTO dto) {
@@ -195,6 +208,71 @@ public class DeliveryService {
         }
     }
 
+    private String fetchRestaurantAddress(Long restaurantId) {
+        try {
+            Object restaurantResponse = restaurantServiceClient.getRestaurant(restaurantId);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> restaurantMap = (Map<String, Object>) restaurantResponse;
+
+            // Build formatted address from restaurant details
+            StringBuilder address = new StringBuilder();
+
+            if (restaurantMap.get("address") != null) {
+                address.append(restaurantMap.get("address"));
+            }
+
+            if (restaurantMap.get("city") != null) {
+                if (address.length() > 0) address.append(", ");
+                address.append(restaurantMap.get("city"));
+            }
+
+            if (restaurantMap.get("district") != null) {
+                if (address.length() > 0) address.append(", ");
+                address.append(restaurantMap.get("district"));
+            }
+
+            if (address.length() == 0) {
+                return "Restaurant Address Not Available";
+            }
+
+            return address.toString();
+
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("Restaurant not found with id: " + restaurantId);
+        }
+    }
+
+    /**
+     * Get deliveries for a restaurant owner (all their restaurants)
+     */
+    public List<DeliveryResponseDTO> getDeliveriesByRestaurantOwnerId(Long restaurantOwnerId) {
+        try {
+            // Fetch ALL restaurants for this owner from Restaurant Service
+            Object restaurantsResponse = restaurantServiceClient.getRestaurantsByOwnerId(restaurantOwnerId);
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> restaurantsList = (List<Map<String, Object>>) restaurantsResponse;
+
+            if (restaurantsList.isEmpty()) {
+                throw new ResourceNotFoundException("No restaurants found for owner ID: " + restaurantOwnerId);
+            }
+
+            // Get deliveries for ALL restaurants owned by this owner
+            List<DeliveryResponseDTO> allDeliveries = new ArrayList<>();
+
+            for (Map<String, Object> restaurantMap : restaurantsList) {
+                Long restaurantId = getLongValue(restaurantMap.get("id"));
+                List<DeliveryResponseDTO> restaurantDeliveries = getDeliveriesByRestaurantId(restaurantId);
+                allDeliveries.addAll(restaurantDeliveries);
+            }
+
+            return allDeliveries;
+
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("Restaurant not found for owner id: " + restaurantOwnerId);
+        }
+    }
+
     private void validateDriverExists(Long driverId) {
         try {
             userServiceClient.getDriverProfile(driverId);
@@ -221,6 +299,18 @@ public class DeliveryService {
                     "Invalid status transition from " + currentStatus + " to " + newStatus
             );
         }
+    }
+
+    public List<DeliveryResponseDTO> getActiveDeliveriesByDriverId(Long driverId) {
+        List<DeliveryStatus> activeStatuses = List.of(
+                DeliveryStatus.ASSIGNED,
+                DeliveryStatus.PICKED_UP,
+                DeliveryStatus.IN_TRANSIT
+        );
+        List<Delivery> deliveries = deliveryRepository.findByDriverIdAndStatusIn(driverId, activeStatuses);
+        return deliveries.stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
     }
 
     private DeliveryResponseDTO convertToResponseDTO(Delivery delivery) {

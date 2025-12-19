@@ -48,8 +48,6 @@ public class OrderService {
         order.setCustomerId(customerId);
         order.setRestaurantId(dto.getRestaurantId());
         order.setDeliveryAddressId(dto.getDeliveryAddressId());
-        order.setDeliveryFee(dto.getDeliveryFee());
-        order.setTax(dto.getTax());
         order.setSpecialInstructions(dto.getSpecialInstructions());
         order.setStatus(OrderStatus.PENDING);
         order.setPaymentStatus(PaymentStatus.PENDING);
@@ -90,7 +88,10 @@ public class OrderService {
             order.addItem(item);
         }
 
-        order.calculateTotal();
+        order.setSubtotal(calculateSubtotal(order));
+        order.setTax(calculateTax(order));
+        order.setDeliveryFee(calculateDeliveryFee(dto.getRestaurantId(), dto.getDeliveryAddressId()));
+        order.setTotal(order.getSubtotal().add(order.getDeliveryFee()).add(order.getTax()));
         order.setEstimatedDeliveryTime(LocalDateTime.now().plusMinutes(45));
         Order savedOrder = orderRepository.save(order);
 
@@ -124,27 +125,8 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
-    public List<OrderResponseDTO> getOrdersByDriverId(Long driverId) {
-        List<Order> orders = orderRepository.findByDriverId(driverId);
-        return orders.stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
-    }
-
     public List<OrderResponseDTO> getOrdersByStatus(OrderStatus status) {
         List<Order> orders = orderRepository.findByStatus(status);
-        return orders.stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
-    }
-
-    public List<OrderResponseDTO> getActiveOrdersForDriver(Long driverId) {
-        List<OrderStatus> activeStatuses = List.of(
-                OrderStatus.READY_FOR_PICKUP,
-                OrderStatus.PICKED_UP,
-                OrderStatus.ON_THE_WAY
-        );
-        List<Order> orders = orderRepository.findByDriverIdAndStatusIn(driverId, activeStatuses);
         return orders.stream()
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
@@ -164,27 +146,6 @@ public class OrderService {
         if (dto.getStatus() == OrderStatus.DELIVERED) {
             order.setActualDeliveryTime(LocalDateTime.now());
         }
-
-        Order updatedOrder = orderRepository.save(order);
-        return convertToResponseDTO(updatedOrder);
-    }
-
-    @Transactional
-    public OrderResponseDTO assignDriver(Long orderId, AssignDriverDTO dto) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
-
-        // Validate order is ready for pickup
-        if (order.getStatus() != OrderStatus.READY_FOR_PICKUP) {
-            throw new BadRequestException("Order must be in READY_FOR_PICKUP status to assign a driver");
-        }
-
-        // Controller already validated user role
-        // Just verify driver profile exists
-        validateDriverExists(dto.getDriverId());
-
-        order.setDriverId(dto.getDriverId());
-        order.setStatus(OrderStatus.PICKED_UP);
 
         Order updatedOrder = orderRepository.save(order);
         return convertToResponseDTO(updatedOrder);
@@ -245,15 +206,6 @@ public class OrderService {
             restaurantServiceClient.getRestaurant(restaurantId);
         } catch (Exception e) {
             throw new ResourceNotFoundException("Restaurant not found with id: " + restaurantId);
-        }
-    }
-
-    private void validateDriverExists(Long driverId) {
-        try {
-            // Call User Service to verify driver profile exists
-            userServiceClient.getDriverProfile(driverId);
-        } catch (Exception e) {
-            throw new ResourceNotFoundException("Driver profile not found for user id: " + driverId);
         }
     }
 
@@ -321,6 +273,34 @@ public class OrderService {
         }
     }
 
+    private BigDecimal calculateDeliveryFee(Long restaurantId, Long deliveryAddressId) {
+        // Base fee for Egyptian market: 15 EGP
+        BigDecimal baseFee = new BigDecimal("15.00");
+
+        // TODO: Future enhancements:
+        // - Calculate actual distance
+        // - Add peak hour surcharges
+        // - Apply demand-based pricing
+        // - Check promotional discounts
+
+        return baseFee;
+    }
+
+    private BigDecimal calculateTax(Order order) {
+        // Egypt VAT: 14%
+        BigDecimal taxRate = new BigDecimal("0.14");
+        BigDecimal subtotal = order.getSubtotal();
+        BigDecimal tax = subtotal.multiply(taxRate);
+
+        return tax.setScale(2, BigDecimal.ROUND_HALF_UP);
+    }
+
+    private BigDecimal calculateSubtotal(Order order) {
+        return order.getItems().stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
         // Define valid transitions
         boolean isValid = switch (currentStatus) {
@@ -350,7 +330,6 @@ public class OrderService {
         dto.setId(order.getId());
         dto.setCustomerId(order.getCustomerId());
         dto.setRestaurantId(order.getRestaurantId());
-        dto.setDriverId(order.getDriverId());
         dto.setDeliveryAddressId(order.getDeliveryAddressId());
         dto.setSubtotal(order.getSubtotal());
         dto.setDeliveryFee(order.getDeliveryFee());

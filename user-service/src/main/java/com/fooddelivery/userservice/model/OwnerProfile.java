@@ -20,6 +20,9 @@ public class OwnerProfile {
 
     private String taxId;
 
+    @Column(name = "restaurant_id")
+    private Long restaurantId;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

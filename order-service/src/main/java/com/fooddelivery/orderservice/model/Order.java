@@ -29,8 +29,6 @@ public class Order {
     @Column(nullable = false)
     private Long restaurantId;
 
-    private Long driverId; // Null until driver is assigned
-
     @Column(nullable = false)
     private Long deliveryAddressId; // Reference to customer's address
 

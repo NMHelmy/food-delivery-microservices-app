@@ -61,47 +61,69 @@ public class DeliveryController {
         return ResponseEntity.status(HttpStatus.CREATED).body(delivery);
     }
 
-    // Get delivery by ID
+    @GetMapping("/my-deliveries")
+    public ResponseEntity<List<DeliveryResponseDTO>> getMyDeliveries(HttpServletRequest request) {
+        Long customerId = getUserIdFromHeader(request);
+        String role = getUserRoleFromHeader(request);
+
+        if (!"CUSTOMER".equals(role)) {
+            throw new UnauthorizedException("Only customers can access this endpoint");
+        }
+
+        List<DeliveryResponseDTO> deliveries = deliveryService.getDeliveriesByCustomerId(customerId);
+        return ResponseEntity.ok(deliveries);
+    }
+
     @GetMapping("/{deliveryId}")
     public ResponseEntity<DeliveryResponseDTO> getDeliveryById(
             @PathVariable Long deliveryId,
             HttpServletRequest request) {
-        Long userId = getUserIdFromHeader(request);
-        String role = getUserRoleFromHeader(request);
+        // Only admins can access deliveries by ID directly
+        validateUserRole(request, "ADMIN");
 
         DeliveryResponseDTO delivery = deliveryService.getDeliveryById(deliveryId);
+        return ResponseEntity.ok(delivery);
+    }
 
-        // Verify user has access
-        boolean hasAccess = userId.equals(delivery.getCustomerId()) ||
-                userId.equals(delivery.getDriverId()) ||
-                "ADMIN".equals(role);
+    @GetMapping("/my-order/{orderId}")
+    public ResponseEntity<DeliveryResponseDTO> getMyDeliveryByOrderId(
+            @PathVariable Long orderId,
+            HttpServletRequest request) {
 
-        if (!hasAccess) {
+        Long customerId = getUserIdFromHeader(request);
+        String role = getUserRoleFromHeader(request);
+
+        DeliveryResponseDTO delivery = deliveryService.getDeliveryByOrderId(orderId);
+
+        if (!"ADMIN".equals(role) && !customerId.equals(delivery.getCustomerId())) {
             throw new UnauthorizedException("You don't have access to this delivery");
         }
 
         return ResponseEntity.ok(delivery);
     }
 
-    // Get delivery by order ID
-    @GetMapping("/order/{orderId}")
-    public ResponseEntity<DeliveryResponseDTO> getDeliveryByOrderId(
-            @PathVariable Long orderId,
-            HttpServletRequest request) {
-        getUserIdFromHeader(request); // Verify authenticated
-        DeliveryResponseDTO delivery = deliveryService.getDeliveryByOrderId(orderId);
-        return ResponseEntity.ok(delivery);
-    }
-
-    // Update delivery status
     @PutMapping("/{deliveryId}/status")
     public ResponseEntity<DeliveryResponseDTO> updateDeliveryStatus(
             @PathVariable Long deliveryId,
             @Valid @RequestBody UpdateDeliveryStatusDTO dto,
             HttpServletRequest request) {
-        getUserIdFromHeader(request); // Verify authenticated
+
+        String role = getUserRoleFromHeader(request);
+        if (!"ADMIN".equals(role) && !"RESTAURANT_OWNER".equals(role)) {
+            throw new UnauthorizedException("Only admins and restaurant owners can update delivery status");
+        }
+
         DeliveryResponseDTO delivery = deliveryService.updateDeliveryStatus(deliveryId, dto);
         return ResponseEntity.ok(delivery);
+    }
+
+    @GetMapping("/my-driver-deliveries")
+    public ResponseEntity<List<DeliveryResponseDTO>> getMyDriverDeliveries(HttpServletRequest request) {
+        validateUserRole(request, "DELIVERY_DRIVER");
+        Long driverId = getUserIdFromHeader(request);
+
+        List<DeliveryResponseDTO> deliveries = deliveryService.getDeliveriesByDriverId(driverId);
+        return ResponseEntity.ok(deliveries);
     }
 
     // Assign driver to delivery
@@ -124,7 +146,7 @@ public class DeliveryController {
     public ResponseEntity<DeliveryResponseDTO> confirmPickup(
             @PathVariable Long deliveryId,
             HttpServletRequest request) {
-        validateUserRole(request, "DRIVER");
+        validateUserRole(request, "DELIVERY_DRIVER");
         Long driverId = getUserIdFromHeader(request);
 
         DeliveryResponseDTO delivery = deliveryService.confirmPickup(deliveryId, driverId);
@@ -136,7 +158,7 @@ public class DeliveryController {
     public ResponseEntity<DeliveryResponseDTO> confirmDelivery(
             @PathVariable Long deliveryId,
             HttpServletRequest request) {
-        validateUserRole(request, "DRIVER");
+        validateUserRole(request, "DELIVERY_DRIVER");
         Long driverId = getUserIdFromHeader(request);
 
         DeliveryResponseDTO delivery = deliveryService.confirmDelivery(deliveryId, driverId);
@@ -149,56 +171,72 @@ public class DeliveryController {
             @PathVariable Long deliveryId,
             @Valid @RequestBody UpdateDriverLocationDTO dto,
             HttpServletRequest request) {
-        validateUserRole(request, "DRIVER");
+        validateUserRole(request, "DELIVERY_DRIVER");
         Long driverId = getUserIdFromHeader(request);
 
         DeliveryResponseDTO delivery = deliveryService.updateDriverLocation(deliveryId, dto, driverId);
         return ResponseEntity.ok(delivery);
     }
 
-    // Get customer's delivery history
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<DeliveryResponseDTO>> getDeliveriesByCustomerId(
             @PathVariable Long customerId,
             HttpServletRequest request) {
-        Long userId = getUserIdFromHeader(request);
-        String role = getUserRoleFromHeader(request);
-
-        if (!userId.equals(customerId) && !"ADMIN".equals(role)) {
-            throw new UnauthorizedException("You can only view your own delivery history");
-        }
+        validateUserRole(request, "ADMIN");
 
         List<DeliveryResponseDTO> deliveries = deliveryService.getDeliveriesByCustomerId(customerId);
         return ResponseEntity.ok(deliveries);
     }
 
-    // Get driver's delivery history
-    @GetMapping("/driver/{driverId}")
+    @GetMapping("/admin/driver/{driverId}")
     public ResponseEntity<List<DeliveryResponseDTO>> getDeliveriesByDriverId(
             @PathVariable Long driverId,
             HttpServletRequest request) {
-        Long userId = getUserIdFromHeader(request);
-        String role = getUserRoleFromHeader(request);
-
-        if (!userId.equals(driverId) && !"ADMIN".equals(role)) {
-            throw new UnauthorizedException("You can only view your own delivery history");
-        }
+        validateUserRole(request, "ADMIN");
 
         List<DeliveryResponseDTO> deliveries = deliveryService.getDeliveriesByDriverId(driverId);
         return ResponseEntity.ok(deliveries);
     }
 
-    // Get restaurant's delivery history
-    @GetMapping("/restaurant/{restaurantId}")
+    @GetMapping("/my-restaurant-deliveries")
+    public ResponseEntity<List<DeliveryResponseDTO>> getMyRestaurantDeliveries(
+            HttpServletRequest request) {
+        validateUserRole(request, "RESTAURANT_OWNER");
+        Long restaurantOwnerId = getUserIdFromHeader(request);
+
+        List<DeliveryResponseDTO> deliveries = deliveryService.getDeliveriesByRestaurantOwnerId(restaurantOwnerId);
+        return ResponseEntity.ok(deliveries);
+    }
+
+    @GetMapping("/admin/restaurant/{restaurantId}")
     public ResponseEntity<List<DeliveryResponseDTO>> getDeliveriesByRestaurantId(
             @PathVariable Long restaurantId,
             HttpServletRequest request) {
-        String role = getUserRoleFromHeader(request);
-        if (!"RESTAURANT_OWNER".equals(role) && !"ADMIN".equals(role)) {
-            throw new UnauthorizedException("Only restaurant owners can view restaurant deliveries");
-        }
+        validateUserRole(request, "ADMIN");
 
         List<DeliveryResponseDTO> deliveries = deliveryService.getDeliveriesByRestaurantId(restaurantId);
         return ResponseEntity.ok(deliveries);
     }
+
+    @GetMapping("/driver/active")
+    public ResponseEntity<List<DeliveryResponseDTO>> getMyActiveDeliveries(
+            HttpServletRequest request) {
+        validateUserRole(request, "DELIVERY_DRIVER");
+        Long driverId = getUserIdFromHeader(request);
+
+        List<DeliveryResponseDTO> deliveries = deliveryService.getActiveDeliveriesByDriverId(driverId);
+        return ResponseEntity.ok(deliveries);
+    }
+
+    // Get specific driver's active deliveries (admin only)
+    @GetMapping("/driver/{driverId}/active")
+    public ResponseEntity<List<DeliveryResponseDTO>> getActiveDeliveriesForDriver(
+            @PathVariable Long driverId,
+            HttpServletRequest request) {
+        validateUserRole(request, "ADMIN");
+
+        List<DeliveryResponseDTO> deliveries = deliveryService.getActiveDeliveriesByDriverId(driverId);
+        return ResponseEntity.ok(deliveries);
+    }
 }
+

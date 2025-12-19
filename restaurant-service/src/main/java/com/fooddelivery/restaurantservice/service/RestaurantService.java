@@ -49,6 +49,16 @@ public class RestaurantService {
                 .collect(Collectors.toList());
     }
 
+    public List<Restaurant> getRestaurantsByOwnerId(Long ownerId) {
+        List<Restaurant> restaurants = restaurantRepository.findByOwnerId(ownerId);
+
+        if (restaurants.isEmpty()) {
+            throw new ResourceNotFoundException("No restaurants found for owner id: " + ownerId);
+        }
+
+        return restaurants;
+    }
+
     @Transactional(readOnly = true)
     public List<RestaurantResponse> searchRestaurantsByName(String name) {
         return restaurantRepository.findByNameContainingIgnoreCaseAndIsActiveTrue(name)

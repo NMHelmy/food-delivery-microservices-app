@@ -18,7 +18,6 @@ public class OrderResponseDTO {
     private Long id;
     private Long customerId;
     private Long restaurantId;
-    private Long driverId;
     private Long deliveryAddressId;
     private List<OrderItemResponseDTO> items;
     private BigDecimal subtotal;

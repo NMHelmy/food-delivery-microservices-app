@@ -15,9 +15,6 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateOrderDTO {
 
-//    @NotNull(message = "Customer ID is required")
-//    private Long customerId;
-
     @NotNull(message = "Restaurant ID is required")
     private Long restaurantId;
 
@@ -27,12 +24,6 @@ public class CreateOrderDTO {
     @NotEmpty(message = "Order must contain at least one item")
     @Valid
     private List<OrderItemDTO> items;
-
-    @NotNull(message = "Delivery fee is required")
-    private BigDecimal deliveryFee;
-
-    @NotNull(message = "Tax is required")
-    private BigDecimal tax;
 
     private String specialInstructions;
 }

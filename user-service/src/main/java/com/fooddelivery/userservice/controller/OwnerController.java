@@ -95,10 +95,6 @@ public class OwnerController {
         }
     }
 
-    // This endpoint is for internal service-to-service communication (e.g., Restaurant Service).
-    // It does NOT require authentication headers.
-    // WARNING: Should NOT be exposed through API Gateway!
-    // Only accessible directly to microservices within the private network.
     @GetMapping("/profile/{userId}")
     public ResponseEntity<?> getProfileByUserId(@PathVariable Long userId) {
         try {

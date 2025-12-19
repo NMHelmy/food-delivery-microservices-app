@@ -70,7 +70,6 @@ public class OrderController {
         OrderResponseDTO order = orderService.getOrderById(orderId);
 
         boolean hasAccess = userId.equals(order.getCustomerId()) ||
-                userId.equals(order.getDriverId()) ||
                 "ADMIN".equals(role);
 
         if (!hasAccess) {
@@ -134,48 +133,6 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-    @GetMapping("/driver")
-    public ResponseEntity<List<OrderResponseDTO>> getMyDriverOrders(HttpServletRequest request) {
-        Long driverId = getUserIdFromHeader(request);
-        String role = getUserRoleFromHeader(request);
-
-        if (!"DELIVERY_DRIVER".equals(role)) {
-            throw new UnauthorizedException("Only drivers can access driver orders");
-        }
-
-        List<OrderResponseDTO> orders = orderService.getOrdersByDriverId(driverId);
-        return ResponseEntity.ok(orders);
-    }
-
-    @GetMapping("/driver/{driverId}")
-    public ResponseEntity<List<OrderResponseDTO>> getOrdersByDriverId(
-            @PathVariable Long driverId,
-            HttpServletRequest request) {
-        validateUserRole(request, "ADMIN");
-
-        List<OrderResponseDTO> orders = orderService.getOrdersByDriverId(driverId);
-        return ResponseEntity.ok(orders);
-    }
-
-    @GetMapping("/driver/active")
-    public ResponseEntity<List<OrderResponseDTO>> getMyActiveOrders(HttpServletRequest request) {
-        Long driverId = getUserIdFromHeader(request);
-        validateUserRole(request, "DELIVERY_DRIVER");
-
-        List<OrderResponseDTO> orders = orderService.getActiveOrdersForDriver(driverId);
-        return ResponseEntity.ok(orders);
-    }
-
-    @GetMapping("/driver/{driverId}/active")
-    public ResponseEntity<List<OrderResponseDTO>> getActiveOrdersForDriver(
-            @PathVariable Long driverId,
-            HttpServletRequest request) {
-        validateUserRole(request, "ADMIN");
-
-        List<OrderResponseDTO> orders = orderService.getActiveOrdersForDriver(driverId);
-        return ResponseEntity.ok(orders);
-    }
-
     @GetMapping("/status/{status}")
     public ResponseEntity<List<OrderResponseDTO>> getOrdersByStatus(
             @PathVariable OrderStatus status,
@@ -209,10 +166,6 @@ public class OrderController {
                 // Restaurant owner can update if they own the restaurant
                 canUpdate = orderService.verifyRestaurantOwnership(order.getRestaurantId(), userId);
                 break;
-            case "DELIVERY_DRIVER":
-                // Driver can update only their assigned orders
-                canUpdate = userId.equals(order.getDriverId());
-                break;
             case "CUSTOMER":
                 // Customer can only cancel (which should use cancelOrder endpoint)
                 throw new UnauthorizedException("Customers cannot update order status directly");
@@ -226,22 +179,6 @@ public class OrderController {
 
         OrderResponseDTO updatedOrder  = orderService.updateOrderStatus(orderId, dto);
         return ResponseEntity.ok(updatedOrder);
-    }
-
-    @PutMapping("/{orderId}/assign-driver")
-    public ResponseEntity<OrderResponseDTO> assignDriver(
-            @PathVariable Long orderId,
-            @Valid @RequestBody AssignDriverDTO dto,
-            HttpServletRequest request) {
-
-        String role = getUserRoleFromHeader(request);
-
-        if (!"ADMIN".equals(role) && !"RESTAURANT_OWNER".equals(role)) {
-            throw new UnauthorizedException("Only admins and restaurant owners can assign drivers");
-        }
-
-        OrderResponseDTO order = orderService.assignDriver(orderId, dto);
-        return ResponseEntity.ok(order);
     }
 
     @PutMapping("/{orderId}/payment")

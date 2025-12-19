@@ -22,4 +22,5 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     List<Delivery> findByStatus(DeliveryStatus status);
 
     List<Delivery> findByDriverIdAndStatusIn(Long driverId, List<DeliveryStatus> statuses);
+
 }

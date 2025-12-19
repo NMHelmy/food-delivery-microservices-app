@@ -12,4 +12,7 @@ public interface UserServiceClient {
 
     @GetMapping("/customer/profile/{userId}")
     Object getCustomerProfile(@PathVariable Long userId);
+
+    @GetMapping("/addresses/{addressId}")
+    Object getAddress(@PathVariable Long addressId);
 }

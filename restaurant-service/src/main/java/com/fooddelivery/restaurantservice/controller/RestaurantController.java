@@ -2,6 +2,8 @@ package com.fooddelivery.restaurantservice.controller;
 
 import com.fooddelivery.restaurantservice.dto.RestaurantRequest;
 import com.fooddelivery.restaurantservice.dto.RestaurantResponse;
+import com.fooddelivery.restaurantservice.exception.ResourceNotFoundException;
+import com.fooddelivery.restaurantservice.models.Restaurant;
 import com.fooddelivery.restaurantservice.service.RestaurantService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -60,6 +62,17 @@ public class RestaurantController {
             return ResponseEntity.ok(restaurants);
         } catch (NumberFormatException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    @GetMapping("/owner/{ownerId}")
+    public ResponseEntity<?> getRestaurantsByOwnerId(@PathVariable Long ownerId) {
+        try {
+            List<Restaurant> restaurants = restaurantService.getRestaurantsByOwnerId(ownerId);
+            return ResponseEntity.ok(restaurants);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
