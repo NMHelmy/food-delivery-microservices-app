@@ -43,6 +43,14 @@ spring:
           predicates:
             - Path=/deliveries/**
 
+        #Notification Service Routes
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+              - Path=/notifications/**
+          filters:
+              - RewritePath=/notifications/(?<segment>.*), /notifications/$\{segment}
+
       # CORS Configuration
       globalcors:
         cors-configurations:
