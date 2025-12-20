@@ -21,6 +21,8 @@ public class GatewayConfig {
                         .uri("lb://order-service"))
                 .route("delivery_route", r -> r.path("/deliveries/**")
                         .uri("lb://delivery-service"))
+                .route("payment_route", r -> r.path("/payments/**")
+                        .uri("lb://payment-service"))
 
                 .build();
     }

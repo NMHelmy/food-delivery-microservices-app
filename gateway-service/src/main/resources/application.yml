@@ -43,6 +43,12 @@ spring:
           predicates:
             - Path=/deliveries/**
 
+        # Payment Service Routes
+        - id: payment-service
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/payments/**
+
         #Notification Service Routes
         - id: notification-service
           uri: lb://NOTIFICATION-SERVICE
