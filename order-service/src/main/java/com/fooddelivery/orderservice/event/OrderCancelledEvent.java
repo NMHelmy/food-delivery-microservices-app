@@ -12,5 +12,6 @@ import java.io.Serializable;
 public class OrderCancelledEvent implements Serializable {
     private Long orderId;
     private Long customerId;
+    private Long restaurantOwnerId;
     private String reason;
 }

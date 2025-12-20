@@ -79,12 +79,23 @@ public class OrderEventListener {
     @RabbitListener(queues = RabbitMQConfig.ORDER_CANCELLED_QUEUE)
     public void handleOrderCancelled(OrderCancelledEvent event) {
         log.info("Received ORDER_CANCELLED event for order: {}", event.getOrderId());
-
+        //notify customer
         notificationService.createNotification(
                 event.getCustomerId(),
                 NotificationType.ORDER_CANCELLED,
                 "Order Cancelled",
                 String.format("Your order #%d has been cancelled. Reason: %s",
+                        event.getOrderId(), event.getReason()),
+                event.getOrderId(),
+                null,
+                null
+        );
+        // Notify restaurant owner
+        notificationService.createNotification(
+                event.getRestaurantOwnerId(),
+                NotificationType.ORDER_CANCELLED,
+                "Order Cancelled",
+                String.format("Order #%d has been cancelled. Reason: %s",
                         event.getOrderId(), event.getReason()),
                 event.getOrderId(),
                 null,

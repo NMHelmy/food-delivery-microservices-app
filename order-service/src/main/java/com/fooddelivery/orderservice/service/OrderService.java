@@ -7,11 +7,13 @@ import com.fooddelivery.orderservice.exception.ResourceNotFoundException;
 import com.fooddelivery.orderservice.exception.UnauthorizedException;
 import com.fooddelivery.orderservice.feign.RestaurantServiceClient;
 import com.fooddelivery.orderservice.feign.UserServiceClient;
+import com.fooddelivery.orderservice.feign.DeliveryServiceClient;
 import com.fooddelivery.orderservice.model.Order;
 import com.fooddelivery.orderservice.model.OrderItem;
 import com.fooddelivery.orderservice.model.OrderStatus;
 import com.fooddelivery.orderservice.model.PaymentStatus;
 import com.fooddelivery.orderservice.repository.OrderRepository;
+import java.util.HashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +36,9 @@ public class OrderService {
 
     @Autowired
     private RestaurantServiceClient restaurantServiceClient;
+
+    @Autowired
+    private DeliveryServiceClient deliveryServiceClient;
 
     @Autowired
     private OrderEventPublisher eventPublisher; //added for rabbitmq integration
@@ -169,6 +174,16 @@ public class OrderService {
 
         Order updatedOrder = orderRepository.save(order);
 
+        // ADDED - Automatically create delivery when order is ready for pickup
+        if (dto.getStatus() == OrderStatus.READY_FOR_PICKUP) {
+            try {
+                autoCreateDelivery(updatedOrder);
+            } catch (Exception e) {
+                System.err.println("Failed to auto-create delivery: " + e.getMessage());
+                // Don't fail the status update if delivery creation fails
+            }
+        }
+
         // ADDED - Publish events based on status change
         try {
             String restaurantName = getRestaurantName(order.getRestaurantId());
@@ -200,6 +215,24 @@ public class OrderService {
         }
 
         return convertToResponseDTO(updatedOrder);
+    }
+
+    // NEW HELPER METHOD TO CREATE DELIVERY
+    private void autoCreateDelivery(Order order) {
+        Map<String, Object> deliveryRequest = new HashMap<>();
+        deliveryRequest.put("orderId", order.getId());
+        deliveryRequest.put("restaurantId", order.getRestaurantId());
+        deliveryRequest.put("customerId", order.getCustomerId());
+        deliveryRequest.put("deliveryAddressId", order.getDeliveryAddressId());
+        deliveryRequest.put("estimatedDeliveryTime", order.getEstimatedDeliveryTime().toString());
+
+        try {
+            Map<String, Object> response = deliveryServiceClient.createDelivery(deliveryRequest);
+            System.out.println("Auto-created delivery for order: " + order.getId());
+        } catch (Exception e) {
+            System.err.println("Failed to auto-create delivery: " + e.getMessage());
+            throw new RuntimeException("Could not create delivery for order " + order.getId());
+        }
     }
 
     @Transactional
@@ -242,9 +275,11 @@ public class OrderService {
         Order updatedOrder = orderRepository.save(order);
         // ADDED - Publish ORDER_CANCELLED event
         try {
+            Long restaurantOwnerId = getRestaurantOwnerId(order.getRestaurantId());
             eventPublisher.publishOrderCancelled(new OrderCancelledEvent(
                     orderId,
                     userId,
+                    restaurantOwnerId,
                     "Cancelled by customer"
             ));
         } catch (Exception e) {

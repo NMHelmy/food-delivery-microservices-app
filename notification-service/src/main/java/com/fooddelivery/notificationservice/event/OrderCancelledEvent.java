@@ -10,5 +10,6 @@ import lombok.NoArgsConstructor;
 public class OrderCancelledEvent {
     private Long orderId;
     private Long customerId;
+    private Long restaurantOwnerId;
     private String reason;
 }
