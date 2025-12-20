@@ -1,10 +1,12 @@
 package com.fooddelivery.paymentservice.service;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 import org.springframework.stereotype.Service;
 
 import com.fooddelivery.paymentservice.dto.PaymentRequest;
+import com.fooddelivery.paymentservice.event.*;
 import com.fooddelivery.paymentservice.dto.PaymentResponse;
 import com.fooddelivery.paymentservice.exception.PaymentNotFoundException;
 import com.fooddelivery.paymentservice.exception.UnauthorizedException;
@@ -12,16 +14,20 @@ import com.fooddelivery.paymentservice.feign.OrderClient;
 import com.fooddelivery.paymentservice.models.Payment;
 import com.fooddelivery.paymentservice.models.PaymentStatus;
 import com.fooddelivery.paymentservice.repository.PaymentRepository;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class PaymentService {
 
     private final PaymentRepository repository;
     private final OrderClient orderClient;
+    private final PaymentEventPublisher eventPublisher;
 
-    public PaymentService(PaymentRepository repository, OrderClient orderClient) {
+    public PaymentService(PaymentRepository repository, OrderClient orderClient, PaymentEventPublisher eventPublisher) {
         this.repository = repository;
         this.orderClient = orderClient;
+        this.eventPublisher = eventPublisher;
     }
 
     // CREATE PAYMENT (CUSTOMER)
@@ -30,7 +36,7 @@ public class PaymentService {
         if (request.getOrderId() == null || request.getAmount() == null) {
             throw new IllegalArgumentException("OrderId and amount are required");
         }
-        if (request.getAmount() <= 0) {
+        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be greater than 0");
         }
 
@@ -73,6 +79,17 @@ public class PaymentService {
             // Log error but don't fail the payment
             System.err.println("Failed to notify order service: " + e.getMessage());
         }
+        // PUBLISH EVENT
+        try {
+            eventPublisher.publishPaymentConfirmed(new PaymentConfirmedEvent(
+                    payment.getId(),
+                    payment.getOrderId(),
+                    payment.getUserId(),
+                    payment.getAmount()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to publish PAYMENT_CONFIRMED event: {}", e.getMessage());
+        }
 
         return mapToResponse(payment, "Payment successful");
     }
@@ -108,6 +125,17 @@ public class PaymentService {
 
         payment.setStatus(PaymentStatus.CANCELLED);
         repository.save(payment);
+        // PUBLISH FAILED EVENT
+        try {
+            eventPublisher.publishPaymentFailed(new PaymentFailedEvent(
+                    payment.getId(),
+                    payment.getOrderId(),
+                    payment.getUserId(),
+                    "Cancelled by customer"
+            ));
+        } catch (Exception e) {
+            log.error("Failed to publish PAYMENT_FAILED event: {}", e.getMessage());
+        }
         return mapToResponse(payment, "Payment cancelled");
     }
 
@@ -122,6 +150,19 @@ public class PaymentService {
 
         payment.setStatus(PaymentStatus.REFUNDED);
         repository.save(payment);
+
+        // PUBLISH EVENT
+        try {
+            eventPublisher.publishPaymentRefunded(new PaymentRefundedEvent(
+                    payment.getId(),
+                    payment.getOrderId(),
+                    payment.getUserId(),
+                    payment.getAmount()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to publish PAYMENT_REFUNDED event: {}", e.getMessage());
+        }
+
         return mapToResponse(payment, "Payment refunded");
     }
 

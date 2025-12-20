@@ -1,10 +1,10 @@
 spring:
   application:
-    name: order-service
+    name: payment-service
   datasource:
-    url: jdbc:mysql://localhost:3306/${DB_NAME:fooddelivery_order}?useSSL=false&serverTimezone=UTC
-    username: ${DB_USERNAME:your_mysql_username}
-    password: ${DB_PASSWORD:your_mysql_password}
+    url: jdbc:mysql://localhost:3306/${DB_NAME}?useSSL=false&serverTimezone=UTC
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -14,8 +14,16 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
 
+
+   # RABBITMQ CONFIGURATION
+    rabbitmq:
+      host: localhost
+      port: 5672
+      username: yourusername
+      password: yourpassword
+
 server:
-  port: 8084
+  port: 8087
 
 eureka:
   client:

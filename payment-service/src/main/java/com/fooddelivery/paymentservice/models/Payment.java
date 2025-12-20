@@ -2,6 +2,8 @@ package com.fooddelivery.paymentservice.models;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "payments", uniqueConstraints = {
         @UniqueConstraint(columnNames = "orderId")
@@ -19,7 +21,7 @@ public class Payment {
     private Long userId;
 
     @Column(nullable = false)
-    private Double amount;
+    private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -40,7 +42,7 @@ public class Payment {
         return userId;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
@@ -61,7 +63,7 @@ public class Payment {
         this.userId = userId;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 
