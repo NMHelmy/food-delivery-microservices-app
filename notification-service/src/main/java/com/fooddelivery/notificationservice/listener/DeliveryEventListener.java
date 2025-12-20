@@ -61,21 +61,6 @@ public class DeliveryEventListener {
         );
     }
 
-    @RabbitListener(queues = RabbitMQConfig.DELIVERY_ARRIVING_QUEUE)
-    public void handleDeliveryArriving(DeliveryArrivingEvent event) {
-        log.info("Received DELIVERY_ARRIVING event for delivery: {}", event.getDeliveryId());
-
-        notificationService.createNotification(
-                event.getCustomerId(),
-                NotificationType.DELIVERY_ARRIVING,
-                "Driver Arriving Soon",
-                String.format("Driver %s will arrive in approximately %d minutes",
-                        event.getDriverName(), event.getEstimatedMinutes()),
-                event.getOrderId(),
-                null,
-                event.getDeliveryId()
-        );
-    }
 
     @RabbitListener(queues = RabbitMQConfig.DELIVERY_DELIVERED_QUEUE)
     public void handleDeliveryDelivered(DeliveryDeliveredEvent event) {

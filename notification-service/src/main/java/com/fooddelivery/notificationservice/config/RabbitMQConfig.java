@@ -30,7 +30,6 @@ public class RabbitMQConfig {
     // Delivery Queues
     public static final String DELIVERY_ASSIGNED_QUEUE = "delivery.assigned.queue";
     public static final String DELIVERY_PICKED_UP_QUEUE = "delivery.picked-up.queue";
-    public static final String DELIVERY_ARRIVING_QUEUE = "delivery.arriving.queue";
     public static final String DELIVERY_DELIVERED_QUEUE = "delivery.delivered.queue";
 
     // Routing Keys
@@ -43,7 +42,6 @@ public class RabbitMQConfig {
     public static final String PAYMENT_REFUNDED_KEY = "payment.refunded";
     public static final String DELIVERY_ASSIGNED_KEY = "delivery.assigned";
     public static final String DELIVERY_PICKED_UP_KEY = "delivery.picked-up";
-    public static final String DELIVERY_ARRIVING_KEY = "delivery.arriving";
     public static final String DELIVERY_DELIVERED_KEY = "delivery.delivered";
 
     // Message Converter
@@ -123,10 +121,6 @@ public class RabbitMQConfig {
         return new Queue(DELIVERY_PICKED_UP_QUEUE, true);
     }
 
-    @Bean
-    public Queue deliveryArrivingQueue() {
-        return new Queue(DELIVERY_ARRIVING_QUEUE, true);
-    }
 
     @Bean
     public Queue deliveryDeliveredQueue() {
@@ -199,12 +193,6 @@ public class RabbitMQConfig {
                 .with(DELIVERY_PICKED_UP_KEY);
     }
 
-    @Bean
-    public Binding deliveryArrivingBinding() {
-        return BindingBuilder.bind(deliveryArrivingQueue())
-                .to(deliveryExchange())
-                .with(DELIVERY_ARRIVING_KEY);
-    }
 
     @Bean
     public Binding deliveryDeliveredBinding() {

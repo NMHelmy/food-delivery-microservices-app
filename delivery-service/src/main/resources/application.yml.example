@@ -18,6 +18,13 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
 
+  rabbitmq:
+      host: localhost
+      port: 5672
+      username: urusername
+      password: urusername
+
+
 eureka:
   client:
     service-url:

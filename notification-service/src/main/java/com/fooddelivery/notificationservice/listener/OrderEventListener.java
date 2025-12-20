@@ -34,7 +34,7 @@ public class OrderEventListener {
 
         // Notify restaurant owner
         notificationService.createNotification(
-                event.getRestaurantId(),
+                event.getRestaurantOwnerId(),
                 NotificationType.ORDER_CREATED,
                 "New Order Received",
                 String.format("New order #%d has been placed", event.getOrderId()),

@@ -1,6 +1,7 @@
 package com.fooddelivery.orderservice.service;
 
 import com.fooddelivery.orderservice.dto.*;
+import com.fooddelivery.orderservice.event.*;
 import com.fooddelivery.orderservice.exception.BadRequestException;
 import com.fooddelivery.orderservice.exception.ResourceNotFoundException;
 import com.fooddelivery.orderservice.exception.UnauthorizedException;
@@ -33,6 +34,9 @@ public class OrderService {
 
     @Autowired
     private RestaurantServiceClient restaurantServiceClient;
+
+    @Autowired
+    private OrderEventPublisher eventPublisher; //added for rabbitmq integration
 
     @Transactional
     public OrderResponseDTO createOrder(CreateOrderDTO dto, Long customerId) {
@@ -95,6 +99,22 @@ public class OrderService {
         order.setEstimatedDeliveryTime(LocalDateTime.now().plusMinutes(45));
         Order savedOrder = orderRepository.save(order);
 
+        // Added - Publish ORDER_CREATED event
+        try {
+            String restaurantName = getRestaurantName(dto.getRestaurantId());
+            Long restaurantOwnerId = getRestaurantOwnerId(dto.getRestaurantId());
+            eventPublisher.publishOrderCreated(new OrderCreatedEvent(
+                    savedOrder.getId(),
+                    customerId,
+                    dto.getRestaurantId(),
+                    restaurantOwnerId,
+                    restaurantName
+            ));
+        } catch (Exception e) {
+            // Log but don't fail the order creation if event publishing fails
+            System.err.println("Failed to publish ORDER_CREATED event: " + e.getMessage());
+        }
+
         return convertToResponseDTO(savedOrder);
     }
 
@@ -148,6 +168,37 @@ public class OrderService {
         }
 
         Order updatedOrder = orderRepository.save(order);
+
+        // ADDED - Publish events based on status change
+        try {
+            String restaurantName = getRestaurantName(order.getRestaurantId());
+
+            switch (dto.getStatus()) {
+                case CONFIRMED:
+                    eventPublisher.publishOrderConfirmed(new OrderConfirmedEvent(
+                            orderId,
+                            order.getCustomerId(),
+                            restaurantName
+                    ));
+                    break;
+
+                case READY_FOR_PICKUP:
+                    eventPublisher.publishOrderReady(new OrderReadyEvent(
+                            orderId,
+                            order.getCustomerId(),
+                            restaurantName
+                    ));
+                    break;
+
+                default:
+                    // No notification for other statuses
+                    break;
+            }
+        } catch (Exception e) {
+            // Log but don't fail the status update if event publishing fails
+            System.err.println("Failed to publish order status event: " + e.getMessage());
+        }
+
         return convertToResponseDTO(updatedOrder);
     }
 
@@ -189,6 +240,18 @@ public class OrderService {
         }
 
         Order updatedOrder = orderRepository.save(order);
+        // ADDED - Publish ORDER_CANCELLED event
+        try {
+            eventPublisher.publishOrderCancelled(new OrderCancelledEvent(
+                    orderId,
+                    userId,
+                    "Cancelled by customer"
+            ));
+        } catch (Exception e) {
+            // Log but don't fail the cancellation if event publishing fails
+            System.err.println("Failed to publish ORDER_CANCELLED event: " + e.getMessage());
+        }
+
         return convertToResponseDTO(updatedOrder);
     }
 
@@ -272,6 +335,33 @@ public class OrderService {
             );
         }
     }
+    // ADDED - Helper method to get restaurant name
+    private String getRestaurantName(Long restaurantId) {
+        try {
+            Map<String, Object> restaurant = restaurantServiceClient.getRestaurant(restaurantId);
+            Object nameObj = restaurant.get("name");
+            return nameObj != null ? nameObj.toString() : "Restaurant";
+        } catch (Exception e) {
+            return "Restaurant"; // Fallback if we can't get the name
+        }
+    }
+    //ADDED - Helper method to get restaurant owner id
+    private Long getRestaurantOwnerId(Long restaurantId) {
+        try {
+            Map<String, Object> restaurant = restaurantServiceClient.getRestaurant(restaurantId);
+            Object ownerIdObj = restaurant.get("ownerId");
+
+            if (ownerIdObj instanceof Integer) {
+                return ((Integer) ownerIdObj).longValue();
+            } else if (ownerIdObj instanceof Long) {
+                return (Long) ownerIdObj;
+            }
+            throw new RuntimeException("Could not get owner ID for restaurant " + restaurantId);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get restaurant owner ID: " + e.getMessage());
+        }
+    }
+
 
     private BigDecimal calculateDeliveryFee(Long restaurantId, Long deliveryAddressId) {
         // Base fee for Egyptian market: 15 EGP

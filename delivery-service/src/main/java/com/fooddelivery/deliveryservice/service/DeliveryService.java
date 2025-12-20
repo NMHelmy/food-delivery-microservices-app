@@ -1,6 +1,7 @@
 package com.fooddelivery.deliveryservice.service;
 
 import com.fooddelivery.deliveryservice.dto.*;
+import com.fooddelivery.deliveryservice.event.*; //rabbitmq
 import com.fooddelivery.deliveryservice.exception.BadRequestException;
 import com.fooddelivery.deliveryservice.exception.ResourceNotFoundException;
 import com.fooddelivery.deliveryservice.feign.OrderServiceClient;
@@ -13,12 +14,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 
+@Slf4j
 @Service
 public class DeliveryService {
 
@@ -33,6 +36,9 @@ public class DeliveryService {
 
     @Autowired
     private RestaurantServiceClient restaurantServiceClient;
+
+    @Autowired
+    private DeliveryEventPublisher eventPublisher;
 
     private Long getLongValue(Object value) {
         if (value == null) return null;
@@ -126,7 +132,9 @@ public class DeliveryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found with id: " + deliveryId));
 
         // Validate driver exists
-        validateDriverExists(dto.getDriverId());
+        //validateDriverExists(dto.getDriverId());
+        //fixed to store driver profile
+        Map<String, Object> driverProfile = validateDriverExists(dto.getDriverId());
 
         // Check if delivery can be assigned
         if (delivery.getStatus() != DeliveryStatus.PENDING) {
@@ -135,8 +143,22 @@ public class DeliveryService {
 
         delivery.setDriverId(dto.getDriverId());
         delivery.setStatus(DeliveryStatus.ASSIGNED);
-
         Delivery updatedDelivery = deliveryRepository.save(delivery);
+
+        // PUBLISH EVENT
+        try {
+            String driverName = getDriverName(driverProfile);
+            eventPublisher.publishDeliveryAssigned(new DeliveryAssignedEvent(
+                    updatedDelivery.getId(),
+                    updatedDelivery.getOrderId(),
+                    updatedDelivery.getCustomerId(),
+                    dto.getDriverId(),
+                    driverName
+            ));
+        } catch (Exception e) {
+            log.error("Failed to publish DELIVERY_ASSIGNED event: {}", e.getMessage());
+        }
+
         return convertToResponseDTO(updatedDelivery);
     }
 
@@ -176,6 +198,21 @@ public class DeliveryService {
         delivery.setPickupTime(LocalDateTime.now());
 
         Delivery updatedDelivery = deliveryRepository.save(delivery);
+
+        // PUBLISH EVENT
+        try {
+            Map<String, Object> driverProfile = validateDriverExists(driverId);
+            String driverName = getDriverName(driverProfile);
+
+            eventPublisher.publishDeliveryPickedUp(new DeliveryPickedUpEvent(
+                    updatedDelivery.getId(),
+                    updatedDelivery.getOrderId(),
+                    updatedDelivery.getCustomerId(),
+                    driverName
+            ));
+        } catch (Exception e) {
+            log.error("Failed to publish DELIVERY_PICKED_UP event: {}", e.getMessage());
+        }
         return convertToResponseDTO(updatedDelivery);
     }
 
@@ -197,6 +234,18 @@ public class DeliveryService {
         delivery.setDeliveryTime(LocalDateTime.now());
 
         Delivery updatedDelivery = deliveryRepository.save(delivery);
+
+        // EVENT PUBLISHING
+        try {
+            eventPublisher.publishDeliveryDelivered(new DeliveryDeliveredEvent(
+                    updatedDelivery.getId(),
+                    updatedDelivery.getOrderId(),
+                    updatedDelivery.getCustomerId()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to publish DELIVERY_DELIVERED event: {}", e.getMessage());
+        }
+
         return convertToResponseDTO(updatedDelivery);
     }
 
@@ -273,9 +322,20 @@ public class DeliveryService {
         }
     }
 
-    private void validateDriverExists(Long driverId) {
+    /*private void validateDriverExists(Long driverId) {
         try {
             userServiceClient.getDriverProfile(driverId);
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("Driver profile not found for user id: " + driverId);
+        }
+    }*/
+
+    private Map<String, Object> validateDriverExists(Long driverId) {
+        try {
+            Object response = userServiceClient.getDriverProfile(driverId);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> driverProfile = (Map<String, Object>) response;
+            return driverProfile;
         } catch (Exception e) {
             throw new ResourceNotFoundException("Driver profile not found for user id: " + driverId);
         }
@@ -335,4 +395,14 @@ public class DeliveryService {
         dto.setUpdatedAt(delivery.getUpdatedAt());
         return dto;
     }
+    //  METHOD TO GET DRIVER'S NAME
+    private String getDriverName(Map<String, Object> driverProfile) {
+        // Extract driver name from profile
+        // The driver profile might have userId, vehicleType, etc.
+        Object userId = driverProfile.get("userId");
+
+        // For now, return a placeholder
+        return "Driver #" + userId;
+    }
+
 }

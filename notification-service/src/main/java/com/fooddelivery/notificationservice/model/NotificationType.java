@@ -15,6 +15,5 @@ public enum NotificationType {
     // Delivery Events
     DELIVERY_ASSIGNED,
     DELIVERY_PICKED_UP,
-    DELIVERY_ARRIVING,
     DELIVERY_DELIVERED
 }

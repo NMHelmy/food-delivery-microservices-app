@@ -1,16 +1,16 @@
-package com.fooddelivery.notificationservice.event;
+package com.fooddelivery.orderservice.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DeliveryArrivingEvent {
-    private Long deliveryId;
+public class OrderReadyEvent implements Serializable {
     private Long orderId;
     private Long customerId;
-    private String driverName;
-    private Integer estimatedMinutes;
+    private String restaurantName;
 }
