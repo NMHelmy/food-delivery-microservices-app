@@ -217,21 +217,115 @@ public class OrderService {
         return convertToResponseDTO(updatedOrder);
     }
 
-    // NEW HELPER METHOD TO CREATE DELIVERY
     private void autoCreateDelivery(Order order) {
-        Map<String, Object> deliveryRequest = new HashMap<>();
-        deliveryRequest.put("orderId", order.getId());
-        deliveryRequest.put("restaurantId", order.getRestaurantId());
-        deliveryRequest.put("customerId", order.getCustomerId());
-        deliveryRequest.put("deliveryAddressId", order.getDeliveryAddressId());
-        deliveryRequest.put("estimatedDeliveryTime", order.getEstimatedDeliveryTime().toString());
-
         try {
-            Map<String, Object> response = deliveryServiceClient.createDelivery(deliveryRequest);
-            System.out.println("Auto-created delivery for order: " + order.getId());
+            // Fetch restaurant address for delivery tracking
+            String restaurantAddress = fetchRestaurantAddress(order.getRestaurantId());
+
+            // Fetch customer's delivery address
+            String deliveryAddress = fetchDeliveryAddress(order.getCustomerId(), order.getDeliveryAddressId());
+
+            // Build the delivery creation request
+            Map<String, Object> deliveryRequest = new HashMap<>();
+            deliveryRequest.put("orderId", order.getId());
+            deliveryRequest.put("customerId", order.getCustomerId());
+            deliveryRequest.put("restaurantId", order.getRestaurantId());
+            deliveryRequest.put("deliveryAddressId", order.getDeliveryAddressId());
+            deliveryRequest.put("restaurantAddress", restaurantAddress);
+            deliveryRequest.put("deliveryAddress", deliveryAddress);
+            deliveryRequest.put("estimatedDeliveryTime", order.getEstimatedDeliveryTime().toString());
+
+            // Add special instructions as delivery notes if present
+            if (order.getSpecialInstructions() != null && !order.getSpecialInstructions().isEmpty()) {
+                deliveryRequest.put("deliveryNotes", order.getSpecialInstructions());
+            }
+
+            Map<String, Object> response = deliveryServiceClient.createDelivery(
+                    deliveryRequest,
+                    "1",
+                    "ADMIN"
+            );
+
+            System.out.println("Auto-created delivery for order: " + order.getId() +
+                    " | Delivery ID: " + response.get("id"));
         } catch (Exception e) {
-            System.err.println("Failed to auto-create delivery: " + e.getMessage());
-            throw new RuntimeException("Could not create delivery for order " + order.getId());
+            System.err.println("Failed to auto-create delivery for order " + order.getId() + ": " + e.getMessage());
+        }
+    }
+
+    private String fetchRestaurantAddress(Long restaurantId) {
+        try {
+            Map<String, Object> restaurant = restaurantServiceClient.getRestaurant(restaurantId);
+
+            StringBuilder address = new StringBuilder();
+
+            if (restaurant.get("address") != null) {
+                address.append(restaurant.get("address"));
+            }
+
+            if (restaurant.get("district") != null) {
+                if (address.length() > 0) address.append(", ");
+                address.append(restaurant.get("district"));
+            }
+
+            if (restaurant.get("city") != null) {
+                if (address.length() > 0) address.append(", ");
+                address.append(restaurant.get("city"));
+            }
+
+            return address.length() > 0 ? address.toString() : "Restaurant Address Not Available";
+
+        } catch (Exception e) {
+            return "Restaurant Address Not Available";
+        }
+    }
+
+    private String fetchDeliveryAddress(Long customerId, Long addressId) {
+        try {
+            // Call User Service to get the specific address
+            Object addressResponse = userServiceClient.getCustomerAddresses(
+                    String.valueOf(customerId),
+                    "CUSTOMER",
+                    addressId
+            );
+
+            // Parse the address response
+            @SuppressWarnings("unchecked")
+            Map<String, Object> addressMap = (Map<String, Object>) addressResponse;
+
+            StringBuilder address = new StringBuilder();
+
+            if (addressMap.get("street") != null) {
+                address.append(addressMap.get("street"));
+            }
+
+            if (addressMap.get("district") != null) {
+                if (address.length() > 0) address.append(", ");
+                address.append(addressMap.get("district"));
+            }
+
+            if (addressMap.get("city") != null) {
+                if (address.length() > 0) address.append(", ");
+                address.append(addressMap.get("city"));
+            }
+
+            if (addressMap.get("building") != null) {
+                if (address.length() > 0) address.append(", ");
+                address.append("Building: ").append(addressMap.get("building"));
+            }
+
+            if (addressMap.get("floor") != null) {
+                address.append(", Floor: ").append(addressMap.get("floor"));
+            }
+
+            if (addressMap.get("apartment") != null) {
+                address.append(", Apt: ").append(addressMap.get("apartment"));
+            }
+
+            return address.length() > 0 ? address.toString() : "Delivery Address Not Available";
+
+        } catch (Exception e) {
+            return "Delivery Address Not Available";
         }
     }
 
