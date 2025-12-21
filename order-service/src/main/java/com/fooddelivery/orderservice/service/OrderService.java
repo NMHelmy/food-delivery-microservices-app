@@ -541,8 +541,8 @@ public class OrderService {
                     newStatus == OrderStatus.CANCELLED;
             case READY_FOR_PICKUP -> newStatus == OrderStatus.PICKED_UP ||
                     newStatus == OrderStatus.CANCELLED;
-            case PICKED_UP -> newStatus == OrderStatus.ON_THE_WAY;
-            case ON_THE_WAY -> newStatus == OrderStatus.DELIVERED;
+            case PICKED_UP -> newStatus == OrderStatus.DELIVERED ||
+                    newStatus == OrderStatus.CANCELLED;
             case DELIVERED, CANCELLED, REJECTED -> false; // Terminal states
         };
 

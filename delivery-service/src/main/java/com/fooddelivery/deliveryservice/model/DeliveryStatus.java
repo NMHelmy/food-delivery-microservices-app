@@ -4,7 +4,6 @@ public enum DeliveryStatus {
     PENDING,           // Delivery created, waiting for driver assignment
     ASSIGNED,          // Driver has been assigned
     PICKED_UP,         // Driver picked up from restaurant
-    IN_TRANSIT,        // Driver is on the way to customer
     DELIVERED,         // Successfully delivered
     CANCELLED          // Delivery cancelled
 }
