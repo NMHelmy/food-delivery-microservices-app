@@ -1,5 +1,6 @@
 package com.fooddelivery.deliveryservice.service;
 
+
 import com.fooddelivery.deliveryservice.dto.*;
 import com.fooddelivery.deliveryservice.event.*; //rabbitmq
 import com.fooddelivery.deliveryservice.exception.BadRequestException;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 
@@ -199,6 +201,22 @@ public class DeliveryService {
 
         Delivery updatedDelivery = deliveryRepository.save(delivery);
 
+        // UPDATE ORDER STATUS TO PICKED_UP
+        try {
+            Map<String, String> orderStatusUpdate = new HashMap<>();
+            orderStatusUpdate.put("status", "PICKED_UP");
+            orderServiceClient.updateOrderStatus(
+                    delivery.getOrderId(),
+                    orderStatusUpdate,
+                    "1", // System user ID
+                    "ADMIN" // System role to bypass authorization
+            );
+            log.info("Updated order {} status to PICKED_UP", delivery.getOrderId());
+        } catch (Exception e) {
+            log.error("Failed to update order status: {}", e.getMessage());
+            // Don't fail the delivery confirmation if order update fails
+        }
+
         // PUBLISH EVENT
         try {
             Map<String, Object> driverProfile = validateDriverExists(driverId);
@@ -226,14 +244,30 @@ public class DeliveryService {
             throw new BadRequestException("You are not assigned to this delivery");
         }
 
-        if (delivery.getStatus() != DeliveryStatus.IN_TRANSIT) {
-            throw new BadRequestException("Delivery must be in IN_TRANSIT status to confirm delivery");
+        if (delivery.getStatus() != DeliveryStatus.PICKED_UP) {
+            throw new BadRequestException("Delivery must be in PICKED_UP status to confirm delivery");
         }
 
         delivery.setStatus(DeliveryStatus.DELIVERED);
         delivery.setDeliveryTime(LocalDateTime.now());
 
         Delivery updatedDelivery = deliveryRepository.save(delivery);
+
+        // UPDATE ORDER STATUS TO DELIVERED
+        try {
+            Map<String, String> orderStatusUpdate = new HashMap<>();
+            orderStatusUpdate.put("status", "DELIVERED");
+            orderServiceClient.updateOrderStatus(
+                    delivery.getOrderId(),
+                    orderStatusUpdate,
+                    "1", // System user ID
+                    "ADMIN" // System role to bypass authorization
+            );
+            log.info("Updated order {} status to DELIVERED", delivery.getOrderId());
+        } catch (Exception e) {
+            log.error("Failed to update order status: {}", e.getMessage());
+            // Don't fail the delivery confirmation if order update fails
+        }
 
         // EVENT PUBLISHING
         try {
@@ -347,9 +381,7 @@ public class DeliveryService {
                     newStatus == DeliveryStatus.CANCELLED;
             case ASSIGNED -> newStatus == DeliveryStatus.PICKED_UP ||
                     newStatus == DeliveryStatus.CANCELLED;
-            case PICKED_UP -> newStatus == DeliveryStatus.IN_TRANSIT ||
-                    newStatus == DeliveryStatus.CANCELLED;
-            case IN_TRANSIT -> newStatus == DeliveryStatus.DELIVERED ||
+            case PICKED_UP -> newStatus == DeliveryStatus.DELIVERED ||  // ← CHANGED: Direct to DELIVERED
                     newStatus == DeliveryStatus.CANCELLED;
             case DELIVERED, CANCELLED -> false; // Terminal states
         };
@@ -364,8 +396,7 @@ public class DeliveryService {
     public List<DeliveryResponseDTO> getActiveDeliveriesByDriverId(Long driverId) {
         List<DeliveryStatus> activeStatuses = List.of(
                 DeliveryStatus.ASSIGNED,
-                DeliveryStatus.PICKED_UP,
-                DeliveryStatus.IN_TRANSIT
+                DeliveryStatus.PICKED_UP
         );
         List<Delivery> deliveries = deliveryRepository.findByDriverIdAndStatusIn(driverId, activeStatuses);
         return deliveries.stream()
