@@ -1,7 +1,8 @@
-package com.fooddelivery.userservice.model;
+package com.fooddelivery.authservice.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity

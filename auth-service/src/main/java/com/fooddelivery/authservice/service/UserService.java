@@ -3,6 +3,7 @@ package com.fooddelivery.authservice.service;
 import com.fooddelivery.authservice.dto.RegisterRequest;
 import com.fooddelivery.authservice.model.Role;
 import com.fooddelivery.authservice.model.User;
+import com.fooddelivery.authservice.model.DriverStatus;
 import com.fooddelivery.authservice.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -103,6 +104,50 @@ public class UserService {
     }
 
     @Transactional
+    public User updateDriverProfile(Long userId, String vehicleType, String vehicleNumber, String status) {
+        User user = getUserById(userId);
+
+        if (user.getRole() != Role.DELIVERY_DRIVER) {
+            throw new BadRequestException("User is not a driver");
+        }
+
+        if (vehicleType != null && !vehicleType.isEmpty()) {
+            user.setVehicleType(vehicleType);
+        }
+
+        if (vehicleNumber != null && !vehicleNumber.isEmpty()) {
+            user.setVehicleNumber(vehicleNumber);
+        }
+
+        if (status != null && !status.isEmpty()) {
+            try {
+                user.setDriverStatus(DriverStatus.valueOf(status.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Invalid driver status: " + status);
+            }
+        }
+
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User updateDriverStatus(Long userId, DriverStatus status) {
+        User user = getUserById(userId);
+
+        if (user.getRole() != Role.DELIVERY_DRIVER) {
+            throw new BadRequestException("User is not a driver");
+        }
+
+        user.setDriverStatus(status);
+        return userRepository.save(user);
+    }
+
+    public List<User> getAvailableDrivers() {
+        return userRepository.findByRoleAndDriverStatus(Role.DELIVERY_DRIVER, DriverStatus.AVAILABLE);
+    }
+
+    // Password Management
+    @Transactional
     public void changePassword(Long userId, String oldPassword, String newPassword) {
         User user = getUserById(userId);
 
@@ -142,6 +187,7 @@ public class UserService {
         userRepository.save(user);
     }
 
+    // Admin Functions
     @Transactional
     public void deactivateUser(Long userId) {
         User user = getUserById(userId);

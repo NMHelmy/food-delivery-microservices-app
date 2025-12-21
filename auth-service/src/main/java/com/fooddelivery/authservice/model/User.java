@@ -11,6 +11,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Authentication fields
     @Column(unique = true, nullable = false)
     private String email;
 
@@ -22,16 +23,27 @@ public class User {
     private Role role;
 
     @Column(nullable = false)
+    private boolean isActive = true;
+
+    @Column(nullable = false)
+    private boolean isEmailVerified = false;
+
+    // For password reset functionality
+    private String resetToken;
+    private LocalDateTime resetTokenExpiry;
+
+    // Profile fields
+    @Column(nullable = false)
     private String fullName;
 
     @Column(unique = true, nullable = false)
     private String phoneNumber;
 
-    @Column(nullable = false)
-    private boolean isActive = true;
+    private String vehicleType;
+    private String vehicleNumber;
 
-    @Column(nullable = false)
-    private boolean isEmailVerified = false;
+    @Enumerated(EnumType.STRING)
+    private DriverStatus driverStatus;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -39,10 +51,7 @@ public class User {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    // For password reset functionality
-    private String resetToken;
-    private LocalDateTime resetTokenExpiry;
-
+    // Constructors
     public User() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -56,6 +65,11 @@ public class User {
         this.phoneNumber = phoneNumber;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+
+        // Initialize drive fields if role is driver
+        if (role == Role.DELIVERY_DRIVER) {
+            this.driverStatus = DriverStatus.OFFLINE;
+        }
     }
 
     @PreUpdate
@@ -88,15 +102,25 @@ public class User {
     public boolean isEmailVerified() { return isEmailVerified; }
     public void setEmailVerified(boolean emailVerified) { isEmailVerified = emailVerified; }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-
     public String getResetToken() { return resetToken; }
     public void setResetToken(String resetToken) { this.resetToken = resetToken; }
 
     public LocalDateTime getResetTokenExpiry() { return resetTokenExpiry; }
     public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) { this.resetTokenExpiry = resetTokenExpiry; }
+
+    // Driver specific requirements
+    public String getVehicleType() { return vehicleType; }
+    public void setVehicleType(String vehicleType) { this.vehicleType = vehicleType; }
+
+    public String getVehicleNumber() { return vehicleNumber; }
+    public void setVehicleNumber(String vehicleNumber) { this.vehicleNumber = vehicleNumber; }
+
+    public DriverStatus getDriverStatus() { return driverStatus; }
+    public void setDriverStatus(DriverStatus driverStatus) { this.driverStatus = driverStatus; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

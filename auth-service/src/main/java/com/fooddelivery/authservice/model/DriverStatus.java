@@ -1,4 +1,4 @@
-package com.fooddelivery.userservice.model;
+package com.fooddelivery.authservice.model;
 
 public enum DriverStatus {
     AVAILABLE,
