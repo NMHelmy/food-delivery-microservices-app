@@ -184,7 +184,6 @@ public class OrderService {
             }
         }
 
-        // ADDED - Publish events based on status change
         try {
             String restaurantName = getRestaurantName(order.getRestaurantId());
 

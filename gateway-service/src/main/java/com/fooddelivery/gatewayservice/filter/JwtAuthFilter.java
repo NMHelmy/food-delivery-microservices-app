@@ -65,14 +65,14 @@ public class JwtAuthFilter implements WebFilter {
             String role = String.valueOf(claims.get("role"));
             String email = claims.getSubject();
 
-            // CRITICAL: Create modified request with headers
+            // Create modified request with headers
             ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
                     .header("X-User-Id", userId)
                     .header("X-User-Role", role)
                     .header("X-User-Email", email)
                     .build();
 
-            // CRITICAL: Create modified exchange with the new request
+            // Create modified exchange with the new request
             ServerWebExchange modifiedExchange = exchange.mutate()
                     .request(modifiedRequest)
                     .build();
@@ -102,8 +102,6 @@ public class JwtAuthFilter implements WebFilter {
             return true;
         }
 
-        // All other restaurant endpoints require auth
-        // This includes: /api/restaurants/owner, /api/restaurants/{id}/rating, etc.
         return false;
     }
 }

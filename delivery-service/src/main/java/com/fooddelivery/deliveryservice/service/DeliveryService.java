@@ -325,9 +325,6 @@ public class DeliveryService {
         }
     }
 
-    /**
-     * Get deliveries for a restaurant owner (all their restaurants)
-     */
     public List<DeliveryResponseDTO> getDeliveriesByRestaurantOwnerId(Long restaurantOwnerId) {
         try {
             // Fetch ALL restaurants for this owner from Restaurant Service
@@ -355,14 +352,6 @@ public class DeliveryService {
             throw new ResourceNotFoundException("Restaurant not found for owner id: " + restaurantOwnerId);
         }
     }
-
-    /*private void validateDriverExists(Long driverId) {
-        try {
-            userServiceClient.getDriverProfile(driverId);
-        } catch (Exception e) {
-            throw new ResourceNotFoundException("Driver profile not found for user id: " + driverId);
-        }
-    }*/
 
     private Map<String, Object> validateDriverExists(Long driverId) {
         try {

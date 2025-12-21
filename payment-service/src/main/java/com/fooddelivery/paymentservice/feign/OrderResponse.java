@@ -4,13 +4,13 @@ import java.math.BigDecimal;
 
 public class OrderResponse {
     private Long id;
-    private Long customerId;  // Changed from userId to match Order Service
+    private Long customerId;
     private Long restaurantId;
     private Long deliveryAddressId;
     private BigDecimal subtotal;
     private BigDecimal deliveryFee;
     private BigDecimal tax;
-    private BigDecimal total;  // Changed from totalAmount to match Order Service
+    private BigDecimal total;
     private String status;
     private String paymentStatus;
     private String specialInstructions;
