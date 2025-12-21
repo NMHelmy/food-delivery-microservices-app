@@ -201,4 +201,10 @@ public class OrderController {
         OrderResponseDTO order = orderService.cancelOrder(orderId, userId);
         return ResponseEntity.ok(order);
     }
+
+    @PostMapping("/{orderId}/paid")
+    public ResponseEntity<Void> markOrderAsPaid(@PathVariable Long orderId) {
+        orderService.markOrderAsPaid(orderId);
+        return ResponseEntity.ok().build();
+    }
 }

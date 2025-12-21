@@ -25,14 +25,6 @@ public class PaymentRequest {
         this.orderId = orderId;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
     public String getPaymentMethod() {
         return paymentMethod;
     }

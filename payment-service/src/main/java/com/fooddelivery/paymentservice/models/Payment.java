@@ -1,8 +1,11 @@
 package com.fooddelivery.paymentservice.models;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "payments", uniqueConstraints = {
@@ -29,6 +32,13 @@ public class Payment {
 
     private String paymentMethod;
 
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
     // ===== Getters =====
     public Long getId() {
         return id;
@@ -52,6 +62,14 @@ public class Payment {
 
     public String getPaymentMethod() {
         return paymentMethod;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
     // ===== Setters =====

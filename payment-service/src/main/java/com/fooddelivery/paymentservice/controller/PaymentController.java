@@ -61,7 +61,8 @@ public class PaymentController {
             @RequestBody PaymentRequest request,
             HttpServletRequest httpRequest) {
         Long userId = getUserIdFromHeader(httpRequest);
-        PaymentResponse response = service.createPayment(request, userId);
+        String role = getUserRoleFromHeader(httpRequest);
+        PaymentResponse response = service.createPayment(request, userId, role);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

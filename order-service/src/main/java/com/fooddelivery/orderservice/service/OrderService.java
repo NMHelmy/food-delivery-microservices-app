@@ -384,6 +384,15 @@ public class OrderService {
         return convertToResponseDTO(updatedOrder);
     }
 
+    @Transactional
+    public void markOrderAsPaid(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        order.setPaymentStatus(PaymentStatus.PAID);
+        orderRepository.save(order);
+    }
+
     private void validateCustomerExists(Long customerId) {
         try {
             // Call User Service to verify customer profile exists

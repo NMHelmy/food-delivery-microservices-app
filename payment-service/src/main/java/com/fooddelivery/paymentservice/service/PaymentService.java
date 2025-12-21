@@ -11,6 +11,7 @@ import com.fooddelivery.paymentservice.dto.PaymentResponse;
 import com.fooddelivery.paymentservice.exception.PaymentNotFoundException;
 import com.fooddelivery.paymentservice.exception.UnauthorizedException;
 import com.fooddelivery.paymentservice.feign.OrderClient;
+import com.fooddelivery.paymentservice.feign.OrderResponse;
 import com.fooddelivery.paymentservice.models.Payment;
 import com.fooddelivery.paymentservice.models.PaymentStatus;
 import com.fooddelivery.paymentservice.repository.PaymentRepository;
@@ -31,13 +32,10 @@ public class PaymentService {
     }
 
     // CREATE PAYMENT (CUSTOMER)
-    public PaymentResponse createPayment(PaymentRequest request, Long userId) {
+    public PaymentResponse createPayment(PaymentRequest request, Long userId, String role) {
         // Validate input
-        if (request.getOrderId() == null || request.getAmount() == null) {
-            throw new IllegalArgumentException("OrderId and amount are required");
-        }
-        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be greater than 0");
+        if (request.getOrderId() == null) {
+            throw new IllegalArgumentException("OrderId is required");
         }
 
         // Check for duplicate payment
@@ -45,9 +43,33 @@ public class PaymentService {
             throw new IllegalStateException("Payment already exists for this order");
         }
 
+        // Fetch order details from Order Service to get the actual amount
+        OrderResponse order;
+        try {
+            order = orderClient.getOrder(request.getOrderId(), userId, role);
+        } catch (Exception e) {
+            log.error("Failed to fetch order {}: {}", request.getOrderId(), e.getMessage());
+            throw new IllegalStateException("Failed to fetch order details. Please try again.");
+        }
+
+        // Validate that the order belongs to the user
+        if (!order.getCustomerId().equals(userId)) {
+            throw new UnauthorizedException("This order does not belong to you");
+        }
+
+        // Validate order amount
+        if (order.getTotal() == null || order.getTotal().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Invalid order amount");
+        }
+
+        // Validate order status (optional - you might want to check if order is in a payable state)
+        if ("CANCELLED".equalsIgnoreCase(order.getStatus()) || "PAID".equalsIgnoreCase(order.getStatus())) {
+            throw new IllegalStateException("Order is not in a payable state");
+        }
+
         Payment payment = new Payment();
         payment.setOrderId(request.getOrderId());
-        payment.setAmount(request.getAmount());
+        payment.setAmount(order.getTotal());
         payment.setUserId(userId);
         payment.setPaymentMethod(request.getPaymentMethod());
         payment.setStatus(PaymentStatus.PENDING);
@@ -77,7 +99,7 @@ public class PaymentService {
             orderClient.markOrderAsPaid(payment.getOrderId());
         } catch (Exception e) {
             // Log error but don't fail the payment
-            System.err.println("Failed to notify order service: " + e.getMessage());
+            log.error("Failed to notify order service: {}", e.getMessage());
         }
         // PUBLISH EVENT
         try {
@@ -182,7 +204,6 @@ public class PaymentService {
                 .toList();
     }
 
-    // ----------------- HELPERS -----------------
     private Payment getPaymentOrThrow(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found"));
@@ -198,8 +219,14 @@ public class PaymentService {
     private PaymentResponse mapToResponse(Payment payment, String message) {
         return new PaymentResponse(
                 payment.getId(),
+                payment.getOrderId(),
+                payment.getUserId(),
+                payment.getAmount(),
+                payment.getPaymentMethod(),
                 payment.getStatus().name(),
-                message
+                message,
+                payment.getCreatedAt(),
+                payment.getUpdatedAt()
         );
     }
 }
