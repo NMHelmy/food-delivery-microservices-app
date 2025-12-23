@@ -14,6 +14,7 @@ import com.fooddelivery.orderservice.model.OrderItem;
 import com.fooddelivery.orderservice.model.OrderStatus;
 import com.fooddelivery.orderservice.model.PaymentStatus;
 import com.fooddelivery.orderservice.repository.OrderRepository;
+import com.fooddelivery.cartservice.dto.*;
 import java.util.HashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -495,6 +496,31 @@ public class OrderService {
             throw new RuntimeException("Failed to get restaurant owner ID: " + e.getMessage());
         }
     }
+
+    @Transactional
+    public OrderResponseDTO createOrderFromCart(CreateOrderFromCartDTO cartDto) {
+        // Convert cart DTO to regular CreateOrderDTO
+        CreateOrderDTO dto = new CreateOrderDTO();
+        dto.setRestaurantId(cartDto.getRestaurantId());
+        dto.setDeliveryAddressId(cartDto.getDeliveryAddressId());
+        dto.setSpecialInstructions(cartDto.getSpecialInstructions());
+
+        List<OrderItemDTO> orderItems = cartDto.getItems().stream()
+                .map(cartItem -> {
+                    OrderItemDTO orderItem = new OrderItemDTO();
+                    orderItem.setMenuItemId(cartItem.getMenuItemId());
+                    orderItem.setQuantity(cartItem.getQuantity());
+                    orderItem.setCustomizations(cartItem.getCustomizations());
+                    return orderItem;
+                })
+                .collect(Collectors.toList());
+
+        dto.setItems(orderItems);
+
+        // Reuse existing createOrder logic
+        return createOrder(dto, cartDto.getCustomerId());
+    }
+
 
 
     private BigDecimal calculateDeliveryFee(Long restaurantId, Long deliveryAddressId) {
