@@ -355,7 +355,7 @@ public class DeliveryService {
 
     private Map<String, Object> validateDriverExists(Long driverId) {
         try {
-            Object response = userServiceClient.getDriverProfile(driverId);
+            Object response = userServiceClient.getDriverById(driverId);
             @SuppressWarnings("unchecked")
             Map<String, Object> driverProfile = (Map<String, Object>) response;
             return driverProfile;

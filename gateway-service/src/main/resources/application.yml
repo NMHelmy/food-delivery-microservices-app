@@ -2,6 +2,8 @@ server:
   port: 8085
 
 spring:
+  main:
+    web-application-type: reactive
   application:
     name: gateway-service
   cloud:
@@ -13,17 +15,11 @@ spring:
           predicates:
             - Path=/auth/**
 
-        # User Service Routes
-        - id: user-service
-          uri: lb://USER-SERVICE
+        # Address Routes
+        - id: auth-service
+          uri: lb://AUTH-SERVICE
           predicates:
-            - Path=/users/**
-
-        # User Service Admin Routes
-        - id: user-service-admin
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/admin/**
+            - Path=/addresses/**
 
         # Restaurant Service Routes
         - id: restaurant-service
@@ -105,3 +101,5 @@ logging:
     org.springframework.cloud.gateway: DEBUG
     com.fooddelivery.gatewayservice: DEBUG
     org.springframework.web: DEBUG
+    org.springframework.security: TRACE
+    org.springframework.security.web.server: TRACE

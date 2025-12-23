@@ -11,7 +11,6 @@ public interface DeliveryServiceClient {
     @PostMapping("/deliveries")
     Map<String, Object> createDelivery(
             @RequestBody Map<String, Object> createDeliveryRequest,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-Internal-Call") String internalCall
     );
 }

@@ -10,11 +10,11 @@ import java.util.Map;
 public interface RestaurantServiceClient {
 
     // Get restaurant details
-    @GetMapping("/api/restaurants/{restaurantId}")
+    @GetMapping("/restaurants/{restaurantId}")
     Map<String, Object> getRestaurant(@PathVariable("restaurantId") Long restaurantId);
 
     // Get menu item details
-    @GetMapping("/api/restaurants/{restaurantId}/menu/{menuItemId}")
+    @GetMapping("/restaurants/{restaurantId}/menu/{menuItemId}")
     Map<String, Object> getMenuItem(
             @PathVariable("restaurantId") Long restaurantId,
             @PathVariable("menuItemId") Long menuItemId

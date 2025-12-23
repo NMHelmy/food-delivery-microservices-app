@@ -18,61 +18,91 @@ public class AddressController {
     @Autowired
     private AddressService addressService;
 
+    // AUTHENTICATED USERS
+
     @PostMapping
-    public ResponseEntity<?> createAddress(
-            @RequestHeader("X-User-Id") String userIdHeader,
+    public ResponseEntity<Address> createAddress(
+            @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody AddressDTO addressDTO) {
 
-        Long userId = Long.parseLong(userIdHeader);
-        Address address = addressService.createAddress(userId, addressDTO);
+        Address address =
+                addressService.createAddress(userId, addressDTO);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(address);
     }
 
     @GetMapping("/my-addresses")
-    public ResponseEntity<?> getMyAddresses(@RequestHeader("X-User-Id") String userIdHeader) {
-        Long userId = Long.parseLong(userIdHeader);
-        List<Address> addresses = addressService.getUserAddresses(userId);
-        return ResponseEntity.ok(addresses);
+    public ResponseEntity<List<Address>> getMyAddresses(
+            @RequestHeader("X-User-Id") Long userId) {
+
+        return ResponseEntity.ok(
+                addressService.getUserAddresses(userId)
+        );
     }
 
     @GetMapping("/{addressId}")
-    public ResponseEntity<?> getAddress(
-            @RequestHeader("X-User-Id") String userIdHeader,
+    public ResponseEntity<Address> getAddress(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long addressId) {
 
-        Long userId = Long.parseLong(userIdHeader);
-        Address address = addressService.getAddressByIdAndUserId(addressId, userId);
+        Address address =
+                addressService.getAddressByIdAndUserId(addressId, userId);
+
         return ResponseEntity.ok(address);
     }
 
     @PutMapping("/{addressId}")
-    public ResponseEntity<?> updateAddress(
-            @RequestHeader("X-User-Id") String userIdHeader,
+    public ResponseEntity<Address> updateAddress(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long addressId,
             @Valid @RequestBody AddressDTO addressDTO) {
 
-        Long userId = Long.parseLong(userIdHeader);
-        Address address = addressService.updateAddress(userId, addressId, addressDTO);
+        Address address =
+                addressService.updateAddress(userId, addressId, addressDTO);
+
         return ResponseEntity.ok(address);
     }
 
     @DeleteMapping("/{addressId}")
-    public ResponseEntity<?> deleteAddress(
-            @RequestHeader("X-User-Id") String userIdHeader,
+    public ResponseEntity<String> deleteAddress(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long addressId) {
 
-        Long userId = Long.parseLong(userIdHeader);
         addressService.deleteAddress(userId, addressId);
-        return ResponseEntity.ok().body("Address deleted successfully");
+        return ResponseEntity.ok("Address deleted successfully");
     }
 
     @PutMapping("/{addressId}/set-default")
-    public ResponseEntity<?> setDefaultAddress(
-            @RequestHeader("X-User-Id") String userIdHeader,
+    public ResponseEntity<Address> setDefaultAddress(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long addressId) {
 
-        Long userId = Long.parseLong(userIdHeader);
-        Address address = addressService.setDefaultAddress(userId, addressId);
+        Address address =
+                addressService.setDefaultAddress(userId, addressId);
+
+        return ResponseEntity.ok(address);
+    }
+
+    // ADMIN
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Address>> getUserAddresses(
+            @PathVariable Long userId) {
+
+        return ResponseEntity.ok(
+                addressService.getUserAddresses(userId)
+        );
+    }
+
+    // INTERNAL
+
+    @GetMapping("/internal/{addressId}")
+    public ResponseEntity<Address> getAddressById(
+            @PathVariable Long addressId) {
+
+        Address address =
+                addressService.getAddressById(addressId);
+
         return ResponseEntity.ok(address);
     }
 }

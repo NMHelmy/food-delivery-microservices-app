@@ -5,8 +5,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import java.util.Map;
 
-@FeignClient(name = "user-service")
+@FeignClient(name = "auth-service")
 public interface UserServiceClient {
-    @GetMapping("/users/owner/profile/{userId}")
-    Map<String, Object> getOwnerProfile(@PathVariable("userId") Long userId);
+    @GetMapping("/user/{userId}")
+    Object getUserById(@PathVariable Long userId);
 }

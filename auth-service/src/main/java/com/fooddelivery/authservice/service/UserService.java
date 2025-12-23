@@ -1,6 +1,7 @@
 package com.fooddelivery.authservice.service;
 
 import com.fooddelivery.authservice.dto.RegisterRequest;
+import com.fooddelivery.authservice.exception.ForbiddenOperationException;
 import com.fooddelivery.authservice.model.Role;
 import com.fooddelivery.authservice.model.User;
 import com.fooddelivery.authservice.model.DriverStatus;
@@ -130,16 +131,30 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    @Transactional
-    public User updateDriverStatus(Long userId, DriverStatus status) {
-        User user = getUserById(userId);
+    public User updateDriverStatus(
+            Long driverId,
+            Long requesterId,
+            String status) {
 
-        if (user.getRole() != Role.DELIVERY_DRIVER) {
-            throw new BadRequestException("User is not a driver");
+        User driver = getUserById(driverId);
+
+        // Ownership check
+        if (!driverId.equals(requesterId)) {
+            throw new ForbiddenOperationException(
+                    "You can only update your own status"
+            );
         }
 
-        user.setDriverStatus(status);
-        return userRepository.save(user);
+        // Convert String → Enum safely
+        DriverStatus driverStatus;
+        try {
+            driverStatus = DriverStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid driver status: " + status);
+        }
+
+        driver.setDriverStatus(driverStatus);
+        return userRepository.save(driver);
     }
 
     public List<User> getAvailableDrivers() {

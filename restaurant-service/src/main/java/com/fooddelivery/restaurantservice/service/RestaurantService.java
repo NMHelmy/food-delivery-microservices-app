@@ -2,6 +2,7 @@ package com.fooddelivery.restaurantservice.service;
 
 import com.fooddelivery.restaurantservice.dto.RestaurantRequest;
 import com.fooddelivery.restaurantservice.dto.RestaurantResponse;
+import com.fooddelivery.restaurantservice.exception.ForbiddenOperationException;
 import com.fooddelivery.restaurantservice.models.Restaurant;
 import com.fooddelivery.restaurantservice.exception.ResourceNotFoundException;
 import com.fooddelivery.restaurantservice.exception.UnauthorizedException;
@@ -78,10 +79,11 @@ public class RestaurantService {
     @Transactional
     public RestaurantResponse createRestaurant(RestaurantRequest request, Long ownerId) {
         try {
-            userServiceClient.getOwnerProfile(ownerId);
+            userServiceClient.getUserById(ownerId);
         } catch (Exception e) {
-            throw new RuntimeException("Invalid owner. User must have a restaurant owner profile.");
+            throw new ResourceNotFoundException("Owner user not found: " + ownerId);
         }
+
         Restaurant restaurant = new Restaurant();
         restaurant.setName(request.getName());
         restaurant.setAddress(request.getAddress());
@@ -103,7 +105,7 @@ public class RestaurantService {
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
 
         if (!restaurant.getOwnerId().equals(ownerId)) {
-            throw new UnauthorizedException("You are not authorized to update this restaurant");
+            throw new ForbiddenOperationException("You are not authorized to update this restaurant");
         }
 
         restaurant.setName(request.getName());
@@ -123,7 +125,7 @@ public class RestaurantService {
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
 
         if (!restaurant.getOwnerId().equals(ownerId)) {
-            throw new UnauthorizedException("You are not authorized to delete this restaurant");
+            throw new ForbiddenOperationException("You are not authorized to delete this restaurant");
         }
 
         restaurant.setIsActive(false);

@@ -3,6 +3,7 @@ package com.fooddelivery.orderservice.service;
 import com.fooddelivery.orderservice.dto.*;
 import com.fooddelivery.orderservice.event.*;
 import com.fooddelivery.orderservice.exception.BadRequestException;
+import com.fooddelivery.orderservice.exception.ForbiddenOperationException;
 import com.fooddelivery.orderservice.exception.ResourceNotFoundException;
 import com.fooddelivery.orderservice.exception.UnauthorizedException;
 import com.fooddelivery.orderservice.feign.RestaurantServiceClient;
@@ -241,8 +242,7 @@ public class OrderService {
 
             Map<String, Object> response = deliveryServiceClient.createDelivery(
                     deliveryRequest,
-                    "1",
-                    "ADMIN"
+                    "true"
             );
 
             System.out.println("Auto-created delivery for order: " + order.getId() +
@@ -282,9 +282,8 @@ public class OrderService {
     private String fetchDeliveryAddress(Long customerId, Long addressId) {
         try {
             // Call User Service to get the specific address
-            Object addressResponse = userServiceClient.getCustomerAddresses(
-                    String.valueOf(customerId),
-                    "CUSTOMER",
+            Object addressResponse = userServiceClient.getAddressById(
+                    customerId,
                     addressId
             );
 
@@ -347,7 +346,9 @@ public class OrderService {
         // Controller already validated authorization
         // Only verify order can be cancelled
         if (!order.getCustomerId().equals(userId)) {
-            throw new UnauthorizedException("Only the customer who placed the order can cancel it");
+            throw new ForbiddenOperationException(
+                    "You can only cancel your own order"
+            );
         }
 
         // Can only cancel if not already delivered or cancelled
@@ -395,7 +396,7 @@ public class OrderService {
     private void validateCustomerExists(Long customerId) {
         try {
             // Call User Service to verify customer profile exists
-            userServiceClient.getCustomerProfile(customerId);
+            userServiceClient.getUserById(customerId);
         } catch (Exception e) {
             throw new ResourceNotFoundException("Customer profile not found for user id: " + customerId);
         }
@@ -412,11 +413,7 @@ public class OrderService {
     private void validateDeliveryAddress(Long customerId, Long addressId) {
         try {
             // Get customer's addresses and verify the address exists
-            Object addresses = userServiceClient.getCustomerAddresses(
-                    String.valueOf(customerId),
-                    "CUSTOMER",
-                    addressId
-            );
+            userServiceClient.getAddressById(customerId, addressId);
             // In a real implementation, you'd parse the response and check if addressId exists
             // For now, we'll trust that if the call succeeds, the address is valid
         } catch (Exception e) {

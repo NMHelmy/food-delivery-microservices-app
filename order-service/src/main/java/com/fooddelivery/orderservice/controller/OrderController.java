@@ -1,10 +1,8 @@
 package com.fooddelivery.orderservice.controller;
 
 import com.fooddelivery.orderservice.dto.*;
-import com.fooddelivery.orderservice.exception.UnauthorizedException;
 import com.fooddelivery.orderservice.model.OrderStatus;
 import com.fooddelivery.orderservice.service.OrderService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,188 +18,108 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
-    private Long getUserIdFromHeader(HttpServletRequest request) {
-        String userIdHeader = request.getHeader("X-User-Id");
-        if (userIdHeader == null || userIdHeader.isEmpty()) {
-            throw new UnauthorizedException("User ID not found in request headers");
-        }
-        try {
-            return Long.parseLong(userIdHeader);
-        } catch (NumberFormatException e) {
-            throw new UnauthorizedException("Invalid User ID format");
-        }
-    }
-
-    private String getUserRoleFromHeader(HttpServletRequest request) {
-        String roleHeader = request.getHeader("X-User-Role");
-        if (roleHeader == null || roleHeader.isEmpty()) {
-            throw new UnauthorizedException("User role not found in request headers");
-        }
-        return roleHeader;
-    }
-
-    private void validateUserRole(HttpServletRequest request, String requiredRole) {
-        String role = getUserRoleFromHeader(request);
-        if (!role.equals(requiredRole)) {
-            throw new UnauthorizedException("Unauthorized: Required role is " + requiredRole);
-        }
-    }
+    // CUSTOMER
 
     @PostMapping
     public ResponseEntity<OrderResponseDTO> createOrder(
             @Valid @RequestBody CreateOrderDTO dto,
-            HttpServletRequest request) {
-
-        validateUserRole(request, "CUSTOMER");
-        Long customerId = getUserIdFromHeader(request);
+            @RequestHeader("X-User-Id") Long customerId) {
 
         OrderResponseDTO order = orderService.createOrder(dto, customerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
 
+    @GetMapping("/customer")
+    public ResponseEntity<List<OrderResponseDTO>> getMyOrders(
+            @RequestHeader("X-User-Id") Long customerId) {
+
+        return ResponseEntity.ok(
+                orderService.getOrdersByCustomerId(customerId)
+        );
+    }
+
+    @DeleteMapping("/{orderId}")
+    public ResponseEntity<OrderResponseDTO> cancelOrder(
+            @PathVariable Long orderId,
+            @RequestHeader("X-User-Id") Long customerId) {
+
+        OrderResponseDTO order = orderService.cancelOrder(orderId, customerId);
+        return ResponseEntity.ok(order);
+    }
+
+    // ADMIN / CUSTOMER (ownership handled in service)
+
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponseDTO> getOrderById(
             @PathVariable Long orderId,
-            HttpServletRequest request) {
+            @RequestHeader("X-User-Id") Long userId) {
 
-        Long userId = getUserIdFromHeader(request);
-        String role = getUserRoleFromHeader(request);
-
-        OrderResponseDTO order = orderService.getOrderById(orderId);
-
-        boolean hasAccess = userId.equals(order.getCustomerId()) ||
-                "ADMIN".equals(role);
-
-        if (!hasAccess) {
-            throw new UnauthorizedException("You don't have access to this order");
-        }
+        OrderResponseDTO order =
+                orderService.getOrderById(orderId);
 
         return ResponseEntity.ok(order);
     }
 
+    // ADMIN
+
     @GetMapping
-    public ResponseEntity<List<OrderResponseDTO>> getAllOrders(HttpServletRequest request) {
-        validateUserRole(request, "ADMIN");
-        List<OrderResponseDTO> orders = orderService.getAllOrders();
-        return ResponseEntity.ok(orders);
-    }
-
-    @GetMapping("/customer")
-    public ResponseEntity<List<OrderResponseDTO>> getMyOrders(HttpServletRequest request) {
-        Long customerId = getUserIdFromHeader(request);
-        String role = getUserRoleFromHeader(request);
-
-        if (!"CUSTOMER".equals(role)) {
-            throw new UnauthorizedException("Only customers can access customer orders");
-        }
-
-        List<OrderResponseDTO> orders = orderService.getOrdersByCustomerId(customerId);
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<List<OrderResponseDTO>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
     }
 
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<OrderResponseDTO>> getOrdersByCustomerId(
-            @PathVariable Long customerId,
-            HttpServletRequest request) {
-        validateUserRole(request, "ADMIN");
+            @PathVariable Long customerId) {
 
-        List<OrderResponseDTO> orders = orderService.getOrdersByCustomerId(customerId);
-        return ResponseEntity.ok(orders);
-    }
-
-    @GetMapping("/restaurant/{restaurantId}")
-    public ResponseEntity<List<OrderResponseDTO>> getOrdersByRestaurantId(
-            @PathVariable Long restaurantId,
-            HttpServletRequest request) {
-
-        Long userId = getUserIdFromHeader(request);
-        String role = getUserRoleFromHeader(request);
-
-        if (!"RESTAURANT_OWNER".equals(role) && !"ADMIN".equals(role)) {
-            throw new UnauthorizedException("Only restaurant owners can view restaurant orders");
-        }
-
-        // Verify restaurant owner actually owns this restaurant (unless admin)
-        if ("RESTAURANT_OWNER".equals(role)) {
-            boolean ownsRestaurant = orderService.verifyRestaurantOwnership(restaurantId, userId);
-            if (!ownsRestaurant) {
-                throw new UnauthorizedException("You can only view orders for your own restaurant");
-            }
-        }
-
-        List<OrderResponseDTO> orders = orderService.getOrdersByRestaurantId(restaurantId);
-        return ResponseEntity.ok(orders);
+        return ResponseEntity.ok(
+                orderService.getOrdersByCustomerId(customerId)
+        );
     }
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<OrderResponseDTO>> getOrdersByStatus(
-            @PathVariable OrderStatus status,
-            HttpServletRequest request) {
+            @PathVariable OrderStatus status) {
 
-        validateUserRole(request, "ADMIN");
-        List<OrderResponseDTO> orders = orderService.getOrdersByStatus(status);
-        return ResponseEntity.ok(orders);
+        return ResponseEntity.ok(
+                orderService.getOrdersByStatus(status)
+        );
+    }
+
+    @PutMapping("/{orderId}/payment")
+    public ResponseEntity<OrderResponseDTO> updatePaymentStatus(
+            @PathVariable Long orderId,
+            @Valid @RequestBody UpdatePaymentStatusDTO dto) {
+
+        return ResponseEntity.ok(
+                orderService.updatePaymentStatus(orderId, dto)
+        );
+    }
+
+    // ADMIN / RESTAURANT_OWNER
+
+    @GetMapping("/restaurant/{restaurantId}")
+    public ResponseEntity<List<OrderResponseDTO>> getOrdersByRestaurantId(
+            @PathVariable Long restaurantId,
+            @RequestHeader("X-User-Id") Long userId) {
+
+        return ResponseEntity.ok(
+                orderService.getOrdersByRestaurantId(restaurantId)
+        );
     }
 
     @PutMapping("/{orderId}/status")
     public ResponseEntity<OrderResponseDTO> updateOrderStatus(
             @PathVariable Long orderId,
             @Valid @RequestBody UpdateOrderStatusDTO dto,
-            HttpServletRequest request) {
+            @RequestHeader("X-User-Id") Long userId) {
 
-        Long userId = getUserIdFromHeader(request);
-        String role = getUserRoleFromHeader(request);
+        OrderResponseDTO updatedOrder =
+                orderService.updateOrderStatus(orderId, dto);
 
-        // Get the order to check ownership/permissions
-        OrderResponseDTO order = orderService.getOrderById(orderId);
-
-        // Role-based validation for status updates
-        boolean canUpdate = false;
-
-        switch (role) {
-            case "ADMIN":
-                canUpdate = true; // Admins can update any order
-                break;
-            case "RESTAURANT_OWNER":
-                // Restaurant owner can update if they own the restaurant
-                canUpdate = orderService.verifyRestaurantOwnership(order.getRestaurantId(), userId);
-                break;
-            case "CUSTOMER":
-                // Customer can only cancel (which should use cancelOrder endpoint)
-                throw new UnauthorizedException("Customers cannot update order status directly");
-            default:
-                canUpdate = false;
-        }
-
-        if (!canUpdate) {
-            throw new UnauthorizedException("You don't have permission to update this order");
-        }
-
-        OrderResponseDTO updatedOrder  = orderService.updateOrderStatus(orderId, dto);
         return ResponseEntity.ok(updatedOrder);
     }
 
-    @PutMapping("/{orderId}/payment")
-    public ResponseEntity<OrderResponseDTO> updatePaymentStatus(
-            @PathVariable Long orderId,
-            @Valid @RequestBody UpdatePaymentStatusDTO dto,
-            HttpServletRequest request) {
-
-        validateUserRole(request, "ADMIN");
-        OrderResponseDTO order = orderService.updatePaymentStatus(orderId, dto);
-        return ResponseEntity.ok(order);
-    }
-
-    @DeleteMapping("/{orderId}")
-    public ResponseEntity<OrderResponseDTO> cancelOrder(
-            @PathVariable Long orderId,
-            HttpServletRequest request) {
-
-        Long userId = getUserIdFromHeader(request);
-        OrderResponseDTO order = orderService.cancelOrder(orderId, userId);
-        return ResponseEntity.ok(order);
-    }
-
+    // INTERNAL - Payment calls this endpoint
     @PostMapping("/{orderId}/paid")
     public ResponseEntity<Void> markOrderAsPaid(@PathVariable Long orderId) {
         orderService.markOrderAsPaid(orderId);

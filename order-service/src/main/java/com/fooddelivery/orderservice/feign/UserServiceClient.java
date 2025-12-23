@@ -5,24 +5,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-import java.util.Map;
-
-@FeignClient(name = "user-service")
+@FeignClient(name = "auth-service", path = "/auth")
 public interface UserServiceClient {
 
-    // Get customer profile
-    @GetMapping("/users/customer/profile/{userId}")
-    Map<String, Object> getCustomerProfile(@PathVariable("userId") Long userId);
+    // Get user profile (used to verify customer exists)
+    @GetMapping("/user/{userId}")
+    Object getUserById(@PathVariable Long userId);
 
-    // Get driver profile
-    @GetMapping("/users/driver/profile/{userId}")
-    Map<String, Object> getDriverProfile(@PathVariable("userId") Long userId);
-
-    // Verify address exists and belongs to customer
-    @GetMapping("/users/customer/addresses/{addressId}")
-    Object getCustomerAddresses(
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable("addressId") Long addressId
+    // Get specific address (ownership enforced inside AddressService)
+    @GetMapping("/addresses/{addressId}")
+    Object getAddressById(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long addressId
     );
+
+    // Get all addresses for a user (admin/internal use if needed)
+    @GetMapping("/addresses/user/{userId}")
+    Object getUserAddresses(@PathVariable Long userId);
 }

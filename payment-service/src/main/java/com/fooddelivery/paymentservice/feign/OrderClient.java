@@ -12,8 +12,7 @@ public interface OrderClient {
     @GetMapping("/orders/{orderId}")
     OrderResponse getOrder(
             @PathVariable Long orderId,
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-User-Id") Long userId
     );
 
     @PostMapping("/orders/{orderId}/paid")

@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/restaurants/{restaurantId}/menu")
+@RequestMapping("/restaurants/{restaurantId}/menu")
 public class MenuItemController {
 
     private final MenuItemService menuItemService;
@@ -48,65 +48,46 @@ public class MenuItemController {
         return ResponseEntity.ok(item);
     }
 
+    // Owner creates menu item (gateway ensures RESTAURANT_OWNER role)
     @PostMapping
-    public ResponseEntity<MenuItemResponse> createMenuItem(
+    public ResponseEntity<?> createMenuItem(
             @PathVariable Long restaurantId,
             @Valid @RequestBody MenuItemRequest request,
-            HttpServletRequest httpRequest) {
-
-        String ownerId = httpRequest.getHeader("X-User-Id");
-        if (ownerId == null || ownerId.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+            @RequestHeader("X-User-Id") String ownerId) {
 
         MenuItemResponse item = menuItemService.createMenuItem(restaurantId, request, ownerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
 
+    // Owner updates menu item (gateway ensures RESTAURANT_OWNER role)
     @PutMapping("/{itemId}")
-    public ResponseEntity<MenuItemResponse> updateMenuItem(
+    public ResponseEntity<?> updateMenuItem(
             @PathVariable Long restaurantId,
             @PathVariable Long itemId,
             @Valid @RequestBody MenuItemRequest request,
-            HttpServletRequest httpRequest) {
-
-        String ownerId = httpRequest.getHeader("X-User-Id");
-        if (ownerId == null || ownerId.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+            @RequestHeader("X-User-Id") String ownerId) {
 
         MenuItemResponse item = menuItemService.updateMenuItem(restaurantId, itemId, request, ownerId);
         return ResponseEntity.ok(item);
     }
 
+    // Owner deletes menu item (gateway ensures RESTAURANT_OWNER role)
     @DeleteMapping("/{itemId}")
-    public ResponseEntity<Map<String, String>> deleteMenuItem(
+    public ResponseEntity<?> deleteMenuItem(
             @PathVariable Long restaurantId,
             @PathVariable Long itemId,
-            HttpServletRequest httpRequest) {
-
-        String ownerId = httpRequest.getHeader("X-User-Id");
-        if (ownerId == null || ownerId.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+            @RequestHeader("X-User-Id") String ownerId) {
 
         menuItemService.deleteMenuItem(restaurantId, itemId, ownerId);
-
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Menu item deleted successfully");
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of("message", "Menu item deleted successfully"));
     }
 
+    // Owner toggles availability
     @PatchMapping("/{itemId}/availability")
-    public ResponseEntity<MenuItemResponse> toggleAvailability(
+    public ResponseEntity<?> toggleAvailability(
             @PathVariable Long restaurantId,
             @PathVariable Long itemId,
-            HttpServletRequest httpRequest) {
-
-        String ownerId = httpRequest.getHeader("X-User-Id");
-        if (ownerId == null || ownerId.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+            @RequestHeader("X-User-Id") String ownerId) {
 
         MenuItemResponse item = menuItemService.toggleAvailability(restaurantId, itemId, ownerId);
         return ResponseEntity.ok(item);

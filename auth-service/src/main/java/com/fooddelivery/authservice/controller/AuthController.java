@@ -10,10 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.stream.Collectors;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.fooddelivery.authservice.exception.BadRequestException;
 import com.fooddelivery.authservice.exception.UnauthorizedException;
 
@@ -27,8 +29,12 @@ public class AuthController {
     @Autowired
     private JwtService jwtService;
 
+    // PUBLIC
+
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(
+            @Valid @RequestBody RegisterRequest request) {
+
         User user = userService.registerUser(request);
 
         String token = jwtService.generateToken(Map.of(
@@ -38,20 +44,22 @@ public class AuthController {
                 "fullName", user.getFullName()
         ));
 
-        AuthResponse response = new AuthResponse(
-                token,
-                user.getId(),
-                user.getEmail(),
-                user.getFullName(),
-                user.getRole().name(),
-                "User registered successfully"
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                new AuthResponse(
+                        token,
+                        user.getId(),
+                        user.getEmail(),
+                        user.getFullName(),
+                        user.getRole().name(),
+                        "User registered successfully"
+                )
         );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(
+            @Valid @RequestBody LoginRequest request) {
+
         User user = userService.login(request.getEmail(), request.getPassword());
 
         String token = jwtService.generateToken(Map.of(
@@ -61,21 +69,24 @@ public class AuthController {
                 "fullName", user.getFullName()
         ));
 
-        AuthResponse response = new AuthResponse(
-                token,
-                user.getId(),
-                user.getEmail(),
-                user.getFullName(),
-                user.getRole().name(),
-                "Login successful"
+        return ResponseEntity.ok(
+                new AuthResponse(
+                        token,
+                        user.getId(),
+                        user.getEmail(),
+                        user.getFullName(),
+                        user.getRole().name(),
+                        "Login successful"
+                )
         );
-
-        return ResponseEntity.ok(response);
     }
 
-    // Token validation endpoint - other services will call this
+    // INTERNAL
+
     @PostMapping("/validate")
-    public ResponseEntity<ValidationResponse> validateToken(@RequestBody Map<String, String> request) {
+    public ResponseEntity<ValidationResponse> validateToken(
+            @RequestBody Map<String, String> request) {
+
         String token = request.get("token");
 
         if (token == null || token.isEmpty()) {
@@ -85,118 +96,126 @@ public class AuthController {
         try {
             Claims claims = jwtService.validateToken(token);
 
-            ValidationResponse response = new ValidationResponse(
-                    true,
-                    claims.get("userId", Long.class),
-                    claims.get("email", String.class),
-                    claims.get("role", String.class)
+            return ResponseEntity.ok(
+                    new ValidationResponse(
+                            true,
+                            claims.get("userId", Long.class),
+                            claims.get("email", String.class),
+                            claims.get("role", String.class)
+                    )
             );
-
-            return ResponseEntity.ok(response);
         } catch (Exception e) {
             throw new UnauthorizedException("Invalid or expired token");
         }
     }
 
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
-        try {
-            String email = request.get("email");
-            String resetToken = userService.generatePasswordResetToken(email);
+    // PUBLIC
 
-            return ResponseEntity.ok(Map.of(
-                    "message", "Password reset token generated",
-                    "resetToken", resetToken
-            ));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(
+            @RequestBody Map<String, String> request) {
+
+        String email = request.get("email");
+        String resetToken = userService.generatePasswordResetToken(email);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message", "Password reset token generated",
+                        "resetToken", resetToken
+                )
+        );
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
-        try {
-            String resetToken = request.get("resetToken");
-            String newPassword = request.get("newPassword");
+    public ResponseEntity<?> resetPassword(
+            @RequestBody Map<String, String> request) {
 
-            userService.resetPassword(resetToken, newPassword);
+        String resetToken = request.get("resetToken");
+        String newPassword = request.get("newPassword");
 
-            return ResponseEntity.ok(Map.of("message", "Password reset successful"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        userService.resetPassword(resetToken, newPassword);
+
+        return ResponseEntity.ok(
+                Map.of("message", "Password reset successful")
+        );
     }
+
+    // AUTHENTICATED USERS
 
     @PutMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> request) {
-        try {
-            Long userId = Long.parseLong(request.get("userId"));
-            String oldPassword = request.get("oldPassword");
-            String newPassword = request.get("newPassword");
+    public ResponseEntity<?> changePassword(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody Map<String, String> request) {
 
-            userService.changePassword(userId, oldPassword, newPassword);
+        String oldPassword = request.get("oldPassword");
+        String newPassword = request.get("newPassword");
 
-            return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        userService.changePassword(userId, oldPassword, newPassword);
+
+        return ResponseEntity.ok(
+                Map.of("message", "Password changed successfully")
+        );
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getUserInfo(@PathVariable Long userId) {
-        try {
-            User user = userService.getUserById(userId);
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUserInfo(
+            @RequestHeader("X-User-Id") Long userId) {
 
-            return ResponseEntity.ok(Map.of(
-                    "userId", user.getId(),
-                    "email", user.getEmail(),
-                    "fullName", user.getFullName(),
-                    "phoneNumber", user.getPhoneNumber(),
-                    "role", user.getRole().name(),
-                    "isActive", user.isActive(),
-                    "isEmailVerified", user.isEmailVerified()
-            ));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        User user = userService.getUserById(userId);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "userId", user.getId(),
+                        "email", user.getEmail(),
+                        "fullName", user.getFullName(),
+                        "phoneNumber", user.getPhoneNumber(),
+                        "role", user.getRole().name(),
+                        "isActive", user.isActive(),
+                        "isEmailVerified", user.isEmailVerified()
+                )
+        );
+    }
+
+    // ADMIN
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getUserInfo(
+            @PathVariable Long userId) {
+
+        User user = userService.getUserById(userId);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "userId", user.getId(),
+                        "email", user.getEmail(),
+                        "fullName", user.getFullName(),
+                        "phoneNumber", user.getPhoneNumber(),
+                        "role", user.getRole().name(),
+                        "isActive", user.isActive(),
+                        "isEmailVerified", user.isEmailVerified()
+                )
+        );
     }
 
     @GetMapping("/users")
-    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String token) {
-        try {
-            // Validate token and check if user is ADMIN
-            Claims claims = jwtService.validateToken(token.replace("Bearer ", ""));
-            String role = claims.get("role", String.class);
+    public ResponseEntity<?> getAllUsers() {
 
-            if (!"ADMIN".equals(role)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Access denied. Admin only."));
-            }
+        List<User> users = userService.getAllUsers();
 
-            List<User> users = userService.getAllUsers();
+        List<Map<String, Object>> response = users.stream()
+                .map(user -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("userId", user.getId());
+                    map.put("email", user.getEmail());
+                    map.put("fullName", user.getFullName());
+                    map.put("phoneNumber", user.getPhoneNumber());
+                    map.put("role", user.getRole().name());
+                    map.put("isActive", user.isActive());
+                    map.put("isEmailVerified", user.isEmailVerified());
+                    return map;
+                })
+                .collect(Collectors.toList());
 
-            List<Map<String, Object>> userResponses = users.stream()
-                    .map(user -> {
-                        Map<String, Object> userMap = new HashMap<>();
-                        userMap.put("userId", user.getId());
-                        userMap.put("email", user.getEmail());
-                        userMap.put("fullName", user.getFullName());
-                        userMap.put("phoneNumber", user.getPhoneNumber());
-                        userMap.put("role", user.getRole().name());
-                        userMap.put("isActive", user.isActive());
-                        userMap.put("isEmailVerified", user.isEmailVerified());
-                        return userMap;
-                    })
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(userResponses);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(response);
     }
 }

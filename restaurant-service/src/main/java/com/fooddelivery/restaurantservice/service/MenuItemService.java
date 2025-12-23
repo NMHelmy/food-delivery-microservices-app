@@ -2,6 +2,7 @@ package com.fooddelivery.restaurantservice.service;
 
 import com.fooddelivery.restaurantservice.dto.MenuItemRequest;
 import com.fooddelivery.restaurantservice.dto.MenuItemResponse;
+import com.fooddelivery.restaurantservice.exception.ForbiddenOperationException;
 import com.fooddelivery.restaurantservice.models.MenuItem;
 import com.fooddelivery.restaurantservice.models.Restaurant;
 import com.fooddelivery.restaurantservice.exception.ResourceNotFoundException;
@@ -71,7 +72,7 @@ public class MenuItemService {
         Long ownerId = Long.parseLong(ownerIdStr);
 
         if (!restaurant.getOwnerId().equals(ownerId)) {
-            throw new UnauthorizedException("You are not authorized to add menu items to this restaurant");
+            throw new ForbiddenOperationException("You are not authorized to add menu items to this restaurant");
         }
 
         MenuItem menuItem = new MenuItem();
@@ -102,7 +103,7 @@ public class MenuItemService {
         Long ownerId = Long.parseLong(ownerIdStr);
 
         if (!restaurant.getOwnerId().equals(ownerId)) {
-            throw new UnauthorizedException("You are not authorized to update this menu item");
+            throw new ForbiddenOperationException("You are not authorized to update this menu item");
         }
 
         menuItem.setName(request.getName());
@@ -132,7 +133,7 @@ public class MenuItemService {
 
         Long ownerId = Long.parseLong(ownerIdStr);
         if (!restaurant.getOwnerId().equals(ownerId)) {
-            throw new UnauthorizedException("You are not authorized to delete this menu item");
+            throw new ForbiddenOperationException("You are not authorized to delete this menu item");
         }
 
         menuItemRepository.delete(menuItem);
@@ -152,7 +153,7 @@ public class MenuItemService {
 
         Long ownerId = Long.parseLong(ownerIdStr);
         if (!restaurant.getOwnerId().equals(ownerId)) {
-            throw new UnauthorizedException("You are not authorized to update this menu item");
+            throw new ForbiddenOperationException("You are not authorized to update this menu item");
         }
 
         menuItem.setIsAvailable(!menuItem.getIsAvailable());

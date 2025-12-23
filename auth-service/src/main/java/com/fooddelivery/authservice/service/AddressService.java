@@ -43,6 +43,11 @@ public class AddressService {
         return addressRepository.findByUserId(userId);
     }
 
+    public Address getAddressById(Long addressId) {
+        return addressRepository.findById(addressId)
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
+    }
+
     public Address getAddressByIdAndUserId(Long addressId, Long userId) {
         return addressRepository.findByIdAndUserId(addressId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address not found"));

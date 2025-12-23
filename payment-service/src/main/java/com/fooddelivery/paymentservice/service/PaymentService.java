@@ -3,6 +3,7 @@ package com.fooddelivery.paymentservice.service;
 import java.util.List;
 import java.math.BigDecimal;
 
+import com.fooddelivery.paymentservice.exception.ForbiddenOperationException;
 import org.springframework.stereotype.Service;
 
 import com.fooddelivery.paymentservice.dto.PaymentRequest;
@@ -32,29 +33,29 @@ public class PaymentService {
     }
 
     // CREATE PAYMENT (CUSTOMER)
-    public PaymentResponse createPayment(PaymentRequest request, Long userId, String role) {
-        // Validate input
+    public PaymentResponse createPayment(PaymentRequest request, Long userId) {
+
         if (request.getOrderId() == null) {
             throw new IllegalArgumentException("OrderId is required");
         }
 
-        // Check for duplicate payment
+        // Prevent duplicate payment
         if (repository.findByOrderId(request.getOrderId()).isPresent()) {
             throw new IllegalStateException("Payment already exists for this order");
         }
 
-        // Fetch order details from Order Service to get the actual amount
+        // Fetch order details (no role needed)
         OrderResponse order;
         try {
-            order = orderClient.getOrder(request.getOrderId(), userId, role);
+            order = orderClient.getOrder(request.getOrderId(), userId);
         } catch (Exception e) {
             log.error("Failed to fetch order {}: {}", request.getOrderId(), e.getMessage());
             throw new IllegalStateException("Failed to fetch order details. Please try again.");
         }
 
-        // Validate that the order belongs to the user
+        // Ownership check
         if (!order.getCustomerId().equals(userId)) {
-            throw new UnauthorizedException("This order does not belong to you");
+            throw new ForbiddenOperationException("This order does not belong to you");
         }
 
         // Validate order amount
@@ -62,8 +63,9 @@ public class PaymentService {
             throw new IllegalStateException("Invalid order amount");
         }
 
-        // Validate order status (optional - you might want to check if order is in a payable state)
-        if ("CANCELLED".equalsIgnoreCase(order.getStatus()) || "PAID".equalsIgnoreCase(order.getStatus())) {
+        // Validate order status
+        if ("CANCELLED".equalsIgnoreCase(order.getStatus())
+                || "PAID".equalsIgnoreCase(order.getStatus())) {
             throw new IllegalStateException("Order is not in a payable state");
         }
 
@@ -73,9 +75,12 @@ public class PaymentService {
         payment.setUserId(userId);
         payment.setPaymentMethod(request.getPaymentMethod());
         payment.setStatus(PaymentStatus.PENDING);
+
         repository.save(payment);
+
         return mapToResponse(payment, "Payment created");
     }
+
 
     // CONFIRM PAYMENT (CUSTOMER)
     public PaymentResponse confirmPayment(Long paymentId, Long userId) {
@@ -83,7 +88,7 @@ public class PaymentService {
 
         // Authorization check
         if (!payment.getUserId().equals(userId)) {
-            throw new UnauthorizedException("Not your payment");
+            throw new ForbiddenOperationException("Not your payment");
         }
 
         // State validation
@@ -117,19 +122,33 @@ public class PaymentService {
     }
 
     // GET PAYMENT BY ID (CUSTOMER / ADMIN)
-    public PaymentResponse getPaymentById(Long paymentId, Long userId, String role) {
+    public PaymentResponse getPaymentById(Long paymentId, Long userId) {
+
         Payment payment = getPaymentOrThrow(paymentId);
-        authorizeAccess(payment, userId, role);
+
+        // Ownership check (ADMIN already allowed by gateway)
+        if (!payment.getUserId().equals(userId)) {
+            throw new ForbiddenOperationException("You do not have access to this payment");
+        }
+
         return mapToResponse(payment, "Payment retrieved");
     }
 
+
     // GET PAYMENT BY ORDER ID (CUSTOMER / ADMIN)
-    public PaymentResponse getPaymentByOrderId(Long orderId, Long userId, String role) {
+    public PaymentResponse getPaymentByOrderId(Long orderId, Long userId) {
+
         Payment payment = repository.findByOrderId(orderId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found"));
-        authorizeAccess(payment, userId, role);
+
+        // Ownership check
+        if (!payment.getUserId().equals(userId)) {
+            throw new ForbiddenOperationException("You do not have access to this payment");
+        }
+
         return mapToResponse(payment, "Payment retrieved");
     }
+
 
     // CANCEL PAYMENT (CUSTOMER)
     public PaymentResponse cancelPayment(Long paymentId, Long userId) {
@@ -137,7 +156,7 @@ public class PaymentService {
 
         // Authorization check
         if (!payment.getUserId().equals(userId)) {
-            throw new UnauthorizedException("Not your payment");
+            throw new ForbiddenOperationException("Not your payment");
         }
 
         // State validation
@@ -207,13 +226,6 @@ public class PaymentService {
     private Payment getPaymentOrThrow(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found"));
-    }
-
-    private void authorizeAccess(Payment payment, Long userId, String role) {
-        if ("CUSTOMER".equalsIgnoreCase(role)
-                && !payment.getUserId().equals(userId)) {
-            throw new UnauthorizedException("Not your payment");
-        }
     }
 
     private PaymentResponse mapToResponse(Payment payment, String message) {

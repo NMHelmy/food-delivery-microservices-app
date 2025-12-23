@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,34 +18,45 @@ public class DriverController {
     @Autowired
     private UserService userService;
 
+    // =========================
+    // ADMIN / INTERNAL (enforced by gateway)
+    // =========================
+
     @GetMapping("/available")
-    public ResponseEntity<?> getAvailableDrivers() {
-        List<User> drivers = userService.getAvailableDrivers();
-        return ResponseEntity.ok(drivers);
+    public ResponseEntity<List<User>> getAvailableDrivers() {
+        return ResponseEntity.ok(
+                userService.getAvailableDrivers()
+        );
     }
 
     @GetMapping("/{driverId}")
-    public ResponseEntity<?> getDriverProfile(@PathVariable Long driverId) {
+    public ResponseEntity<Map<String, Object>> getDriverProfile(
+            @PathVariable Long driverId) {
+
         User driver = userService.getUserById(driverId);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("userId", driver.getId());
-        response.put("fullName", driver.getFullName());
-        response.put("email", driver.getEmail());
-        response.put("phoneNumber", driver.getPhoneNumber());
-        response.put("vehicleType", driver.getVehicleType());
-        response.put("vehicleNumber", driver.getVehicleNumber());
-        response.put("driverStatus", driver.getDriverStatus());
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                Map.of(
+                        "userId", driver.getId(),
+                        "fullName", driver.getFullName(),
+                        "email", driver.getEmail(),
+                        "phoneNumber", driver.getPhoneNumber(),
+                        "vehicleType", driver.getVehicleType(),
+                        "vehicleNumber", driver.getVehicleNumber(),
+                        "driverStatus", driver.getDriverStatus()
+                )
+        );
     }
 
+    // =========================
+    // DELIVERY DRIVER
+    // =========================
+
     @PutMapping("/my-profile")
-    public ResponseEntity<?> updateMyProfile(
-            @RequestHeader("X-User-Id") String userIdHeader,
+    public ResponseEntity<User> updateMyProfile(
+            @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody UpdateDriverProfileDTO dto) {
 
-        Long userId = Long.parseLong(userIdHeader);
         User driver = userService.updateDriverProfile(
                 userId,
                 dto.getVehicleType(),
@@ -58,16 +68,25 @@ public class DriverController {
     }
 
     @PutMapping("/{driverId}/status")
-    public ResponseEntity<?> updateDriverStatus(
+    public ResponseEntity<Map<String, String>> updateDriverStatus(
             @PathVariable Long driverId,
+            @RequestHeader("X-User-Id") Long userId,
             @RequestBody Map<String, String> statusUpdate) {
 
         String status = statusUpdate.get("status");
-        User driver = userService.updateDriverProfile(driverId, null, null, status);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Driver status updated",
-                "status", driver.getDriverStatus()
-        ));
+        User driver = userService.updateDriverStatus(
+                driverId,
+                userId,
+                status
+        );
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message", "Driver status updated",
+                        "status", driver.getDriverStatus().toString()
+                )
+        );
     }
+
 }

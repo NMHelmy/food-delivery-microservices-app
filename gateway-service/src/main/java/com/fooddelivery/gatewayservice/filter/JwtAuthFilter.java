@@ -2,10 +2,15 @@ package com.fooddelivery.gatewayservice.filter;
 
 import com.fooddelivery.gatewayservice.security.JwtService;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -14,94 +19,101 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Component
+@Component // Registers this filter as a Spring bean
+@Order(-100) // Ensures this filter runs before Spring Security authorization
 public class JwtAuthFilter implements WebFilter {
 
-    @Autowired
-    private JwtService jwtService;
+    private static final Logger log =
+            LoggerFactory.getLogger(JwtAuthFilter.class);
 
-    // Public endpoints that don't require authentication
-    private static final List<String> PUBLIC_PATHS = List.of(
-            "/auth/",           // All auth endpoints (login, register, refresh)
-            "/actuator/",       // Health checks and metrics
-            "/eureka/"          // Eureka endpoints
-    );
+    // Service responsible for validating JWT tokens
+    private final JwtService jwtService;
 
-    // Specific public GET endpoints for restaurants
-    private static final List<String> PUBLIC_GET_PATHS = List.of(
-            "/api/restaurants" // Only the list endpoint (will check exact match or with query params)
-    );
+    public JwtAuthFilter(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
+
+    // Determines whether the request path is public and does not require JWT
+    private boolean isPublicPath(String path) {
+        return path.equals("/auth/login")
+                || path.equals("/auth/register")
+                || path.equals("/auth/forgot-password")
+                || path.equals("/auth/reset-password")
+                || (path.startsWith("/restaurants") && !path.contains("/owner"));
+    }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+
         String path = exchange.getRequest().getURI().getPath();
-        String method = exchange.getRequest().getMethod().name();
+        log.info("JWT FILTER → {} {}", exchange.getRequest().getMethod(), path);
 
-        // Check if path is public (auth, actuator, eureka)
+        // Skip JWT validation for public endpoints
         if (isPublicPath(path)) {
+            log.info("Public path → skipping JWT");
             return chain.filter(exchange);
         }
 
-        // Allow public GET access ONLY to specific endpoints
-        // GET /api/restaurants (list all) and GET /api/restaurants/{id} (get by id)
-        if ("GET".equals(method) && isPublicGetPath(path)) {
-            return chain.filter(exchange);
-        }
+        // Read Authorization header
+        String authHeader =
+                exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
-        // All other paths require authentication
-        String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+        log.info("Authorization header = {}", authHeader);
+
+        // Reject request if Authorization header is missing or malformed
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("Missing or invalid Authorization header");
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
 
-        String token = authHeader.substring(7);
         try {
+            // Extract token value (remove "Bearer ")
+            String token = authHeader.substring(7);
+
             // Validate token and extract claims
             Claims claims = jwtService.validateToken(token);
 
-            // Extract user information
-            String userId = String.valueOf(claims.get("userId"));
-            String role = String.valueOf(claims.get("role"));
-            String email = claims.getSubject();
+            log.info("JWT validated → claims={}", claims);
 
-            // Create modified request with headers
-            ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
-                    .header("X-User-Id", userId)
+            // Extract required claims from token
+            Long userId = claims.get("userId", Long.class);
+            String role = claims.get("role", String.class);
+
+            // Reject token if required claims are missing
+            if (userId == null || role == null) {
+                log.warn("JWT missing required claims");
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+
+            // Forward user identity to downstream microservices via headers
+            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                    .header("X-User-Id", String.valueOf(userId))
                     .header("X-User-Role", role)
-                    .header("X-User-Email", email)
                     .build();
 
-            // Create modified exchange with the new request
-            ServerWebExchange modifiedExchange = exchange.mutate()
-                    .request(modifiedRequest)
-                    .build();
+            // Create Spring Security authentication object
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userId, // principal
+                            null,   // no password needed
+                            List.of(new SimpleGrantedAuthority(role)) // user role
+                    );
 
-            // Continue with modified exchange (WITH headers!)
-            return chain.filter(modifiedExchange);
+            log.info("Authentication injected into SecurityContext");
 
-        } catch (JwtException e) {
-            // Invalid or expired token
+            // Continue filter chain and inject authentication into security context
+            return chain.filter(exchange.mutate().request(mutatedRequest).build())
+                    .contextWrite(
+                            ReactiveSecurityContextHolder.withAuthentication(authentication)
+                    );
+
+        } catch (Exception e) {
+            // Token is invalid, expired, or tampered with
+            log.error("JWT validation failed", e);
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
-    }
-
-    private boolean isPublicPath(String path) {
-        return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
-    }
-
-    private boolean isPublicGetPath(String path) {
-        // Allow GET /api/restaurants (exact match or with query params)
-        if (path.equals("/api/restaurants")) {
-            return true;
-        }
-
-        // Allow GET /api/restaurants/{id} where {id} is a number
-        if (path.matches("/api/restaurants/\\d+")) {
-            return true;
-        }
-
-        return false;
     }
 }
