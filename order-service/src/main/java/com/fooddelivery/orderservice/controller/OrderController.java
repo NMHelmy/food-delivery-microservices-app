@@ -3,6 +3,7 @@ package com.fooddelivery.orderservice.controller;
 import com.fooddelivery.orderservice.dto.*;
 import com.fooddelivery.orderservice.model.OrderStatus;
 import com.fooddelivery.orderservice.service.OrderService;
+import com.fooddelivery.cartservice.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -125,4 +126,17 @@ public class OrderController {
         orderService.markOrderAsPaid(orderId);
         return ResponseEntity.ok().build();
     }
+
+    // INTERNAL - Cart service calls this endpoint
+    @PostMapping("/from-cart")
+    public ResponseEntity<OrderResponseDTO> createOrderFromCart(
+            @Valid @RequestBody CreateOrderFromCartDTO dto,
+            @RequestHeader("X-Internal-Request") String internalFlag) {
+        if (!"true".equals(internalFlag)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        OrderResponseDTO order = orderService.createOrderFromCart(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(order);
+    }
+
 }
