@@ -14,7 +14,7 @@ import com.fooddelivery.orderservice.model.OrderItem;
 import com.fooddelivery.orderservice.model.OrderStatus;
 import com.fooddelivery.orderservice.model.PaymentStatus;
 import com.fooddelivery.orderservice.repository.OrderRepository;
-import com.fooddelivery.cartservice.dto.*;
+// import com.fooddelivery.cartservice.dto.*;
 import java.util.HashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
