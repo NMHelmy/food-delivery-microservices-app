@@ -21,11 +21,17 @@ spring:
           predicates:
             - Path=/addresses/**
 
+        # Driver Routes
+        - id: auth-service
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/drivers/**
+
         # Restaurant Service Routes
         - id: restaurant-service
           uri: lb://RESTAURANT-SERVICE
           predicates:
-            - Path=/api/restaurants/**
+            - Path=/restaurants/**
 
         # Order Service Routes
         - id: order-service

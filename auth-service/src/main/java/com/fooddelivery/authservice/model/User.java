@@ -1,5 +1,7 @@
 package com.fooddelivery.authservice.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -15,6 +17,7 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false)
     private String password;
 
@@ -29,7 +32,9 @@ public class User {
     private boolean isEmailVerified = false;
 
     // For password reset functionality
+    @JsonIgnore
     private String resetToken;
+    @JsonIgnore
     private LocalDateTime resetTokenExpiry;
 
     // Profile fields

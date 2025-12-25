@@ -554,6 +554,7 @@ public class OrderService {
         dto.setId(order.getId());
         dto.setCustomerId(order.getCustomerId());
         dto.setRestaurantId(order.getRestaurantId());
+        dto.setRestaurantName(getRestaurantName(order.getRestaurantId()));
         dto.setDeliveryAddressId(order.getDeliveryAddressId());
         dto.setSubtotal(order.getSubtotal());
         dto.setDeliveryFee(order.getDeliveryFee());

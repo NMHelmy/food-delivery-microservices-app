@@ -137,9 +137,10 @@ public class UserService {
             String status) {
 
         User driver = getUserById(driverId);
+        User requester = getUserById(requesterId);
 
         // Ownership check
-        if (!driverId.equals(requesterId)) {
+        if (!driverId.equals(requesterId) && requester.getRole() != Role.ADMIN) {
             throw new ForbiddenOperationException(
                     "You can only update your own status"
             );

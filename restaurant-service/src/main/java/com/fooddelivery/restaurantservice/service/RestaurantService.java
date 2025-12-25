@@ -100,11 +100,11 @@ public class RestaurantService {
     }
 
     @Transactional
-    public RestaurantResponse updateRestaurant(Long id, RestaurantRequest request, Long ownerId) {
+    public RestaurantResponse updateRestaurant(Long id, RestaurantRequest request, Long ownerId, String userRole) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
 
-        if (!restaurant.getOwnerId().equals(ownerId)) {
+        if (!"ADMIN".equals(userRole) && !restaurant.getOwnerId().equals(ownerId)) {
             throw new ForbiddenOperationException("You are not authorized to update this restaurant");
         }
 
@@ -138,6 +138,32 @@ public class RestaurantService {
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
 
         restaurant.setRating(rating);
+        restaurantRepository.save(restaurant);
+    }
+
+    @Transactional
+    public void activateRestaurant(Long id, Long userId, String userRole) {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
+
+        if (!"ADMIN".equals(userRole) && !restaurant.getOwnerId().equals(userId)) {
+            throw new ForbiddenOperationException("You can only activate your own restaurant");
+        }
+
+        restaurant.setIsActive(true);
+        restaurantRepository.save(restaurant);
+    }
+
+    @Transactional
+    public void deactivateRestaurant(Long id, Long userId, String userRole) {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
+
+        if (!"ADMIN".equals(userRole) && !restaurant.getOwnerId().equals(userId)) {
+            throw new ForbiddenOperationException("You can only deactivate your own restaurant");
+        }
+
+        restaurant.setIsActive(false);
         restaurantRepository.save(restaurant);
     }
 

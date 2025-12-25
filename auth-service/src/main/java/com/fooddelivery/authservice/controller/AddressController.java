@@ -40,6 +40,14 @@ public class AddressController {
         );
     }
 
+    @GetMapping("/default")
+    public ResponseEntity<Address> getDefaultAddress(
+            @RequestHeader("X-User-Id") Long userId) {
+
+        Address address = addressService.getDefaultAddress(userId);
+        return ResponseEntity.ok(address);
+    }
+
     @GetMapping("/{addressId}")
     public ResponseEntity<Address> getAddress(
             @RequestHeader("X-User-Id") Long userId,

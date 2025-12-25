@@ -4,6 +4,7 @@ import com.fooddelivery.authservice.dto.*;
 import com.fooddelivery.authservice.model.User;
 import com.fooddelivery.authservice.security.JwtService;
 import com.fooddelivery.authservice.service.UserService;
+import com.fooddelivery.authservice.dto.ForgotPasswordRequestDTO;
 import io.jsonwebtoken.Claims;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,18 +113,15 @@ public class AuthController {
     // PUBLIC
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(
-            @RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, String>> forgotPassword(
+            @RequestBody ForgotPasswordRequestDTO request) {
 
-        String email = request.get("email");
-        String resetToken = userService.generatePasswordResetToken(email);
+        String resetToken = userService.generatePasswordResetToken(request.getEmail());
 
-        return ResponseEntity.ok(
-                Map.of(
-                        "message", "Password reset token generated",
-                        "resetToken", resetToken
-                )
-        );
+        return ResponseEntity.ok(Map.of(
+                "message", "Password reset token generated",
+                "resetToken", resetToken
+        ));
     }
 
     @PostMapping("/reset-password")
@@ -178,7 +176,7 @@ public class AuthController {
 
     // ADMIN
 
-    @GetMapping("/user/{userId}")
+    @GetMapping("/me")
     public ResponseEntity<?> getUserInfo(
             @PathVariable Long userId) {
 

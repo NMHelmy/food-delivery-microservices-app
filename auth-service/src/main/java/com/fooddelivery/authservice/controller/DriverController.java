@@ -18,9 +18,7 @@ public class DriverController {
     @Autowired
     private UserService userService;
 
-    // =========================
-    // ADMIN / INTERNAL (enforced by gateway)
-    // =========================
+    // ADMIN / INTERNAL
 
     @GetMapping("/available")
     public ResponseEntity<List<User>> getAvailableDrivers() {
@@ -48,9 +46,7 @@ public class DriverController {
         );
     }
 
-    // =========================
     // DELIVERY DRIVER
-    // =========================
 
     @PutMapping("/my-profile")
     public ResponseEntity<User> updateMyProfile(

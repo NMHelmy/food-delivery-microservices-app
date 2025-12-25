@@ -53,6 +53,13 @@ public class AddressService {
                 .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
     }
 
+    public Address getDefaultAddress(Long userId) {
+        return addressRepository.findByUserIdAndIsDefaultTrue(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No default address found for user: " + userId
+                ));
+    }
+    
     @Transactional
     public Address updateAddress(Long userId, Long addressId, AddressDTO dto) {
         Address address = getAddressByIdAndUserId(addressId, userId);

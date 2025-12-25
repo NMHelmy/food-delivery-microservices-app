@@ -38,8 +38,12 @@ public class JwtAuthFilter implements WebFilter {
         return path.equals("/auth/login")
                 || path.equals("/auth/register")
                 || path.equals("/auth/forgot-password")
-                || path.equals("/auth/reset-password")
-                || (path.startsWith("/restaurants") && !path.contains("/owner"));
+                || path.equals("/auth/reset-password");
+    }
+
+    // Public endpoints where JWT is OPTIONAL
+    private boolean isOptionalAuthPath(String path) {
+        return path.equals("/restaurants") || path.startsWith("/restaurants/");
     }
 
     @Override
@@ -62,7 +66,14 @@ public class JwtAuthFilter implements WebFilter {
 
         // Reject request if Authorization header is missing or malformed
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.warn("Missing or invalid Authorization header");
+
+            // Allow optional-auth endpoints (like /restaurants)
+            if (isOptionalAuthPath(path)) {
+                log.info("Optional-auth path → proceeding without JWT");
+                return chain.filter(exchange);
+            }
+
+            log.warn("Missing Authorization header → rejecting");
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }

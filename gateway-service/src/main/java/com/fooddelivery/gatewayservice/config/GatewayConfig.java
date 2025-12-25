@@ -35,14 +35,6 @@ public class GatewayConfig {
                                 "/auth/reset-password"
                         ).permitAll()
 
-                        // Public restaurant browsing
-                        .pathMatchers(HttpMethod.GET,
-                                "/restaurants",
-                                "/restaurants/*",
-                                "/restaurants/*/menu",
-                                "/restaurants/*/menu/*"
-                        ).permitAll()
-
                         // INTERNAL
                         // Block all external access completely
                         .pathMatchers(HttpMethod.POST, "/auth/validate").denyAll()
@@ -54,8 +46,6 @@ public class GatewayConfig {
                                 "/auth/users",
                                 "/auth/user/*",
                                 "/addresses/user/*",
-                                "/restaurants/owner/*",
-                                "/orders",
                                 "/orders/customer/*",
                                 "/orders/status/*",
                                 "/orders/*/payment",
@@ -64,6 +54,9 @@ public class GatewayConfig {
                                 "/deliveries/*",
                                 "/notifications/send"
                         ).hasAuthority("ADMIN")
+
+                        .pathMatchers(HttpMethod.GET, "/orders")
+                        .hasAuthority("ADMIN")
 
                         // Admin payment control
                         .pathMatchers(HttpMethod.GET,
@@ -75,10 +68,8 @@ public class GatewayConfig {
                                 "/payments/*/refund"
                         ).hasAuthority("ADMIN")
 
-
                         // DELIVERY DRIVER
                         .pathMatchers(
-                                "/drivers/my-profile",
                                 "/deliveries/my-driver-deliveries",
                                 "/deliveries/driver/active",
                                 "/deliveries/*/pickup-confirmation",
@@ -86,13 +77,37 @@ public class GatewayConfig {
                         ).hasAuthority("DELIVERY_DRIVER")
 
                         // RESTAURANT OWNER
+                        .pathMatchers(HttpMethod.POST, "/restaurants")
+                        .hasAuthority("RESTAURANT_OWNER")
+
+                        .pathMatchers(HttpMethod.PUT, "/restaurants/*")
+                        .hasAuthority("RESTAURANT_OWNER")
+
+                        .pathMatchers(HttpMethod.PATCH, "/restaurants/*/activate", "/restaurants/*/deactivate")
+                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
+
+                        // RESTAURANT OWNER - manage their own menus (POST, PUT, DELETE only)
+                        .pathMatchers(HttpMethod.POST, "/restaurants/*/menu/**")
+                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
+
+                        .pathMatchers(HttpMethod.PUT, "/restaurants/*/menu/**")
+                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
+
+                        .pathMatchers(HttpMethod.DELETE, "/restaurants/*/menu/**")
+                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
+
                         .pathMatchers(
                                 "/restaurants/owner",
-                                "/restaurants",
-                                "/restaurants/*",
-                                "/restaurants/*/menu/**",
                                 "/deliveries/my-restaurant-deliveries"
                         ).hasAuthority("RESTAURANT_OWNER")
+
+                        // Public restaurant browsing
+                        .pathMatchers(HttpMethod.GET,
+                                "/restaurants",
+                                "/restaurants/*",
+                                "/restaurants/*/menu",
+                                "/restaurants/*/menu/*"
+                        ).permitAll()
 
                         // CUSTOMER
                         .pathMatchers(HttpMethod.POST, "/orders").hasAuthority("CUSTOMER")
@@ -113,6 +128,20 @@ public class GatewayConfig {
                         ).hasAuthority("CUSTOMER")
 
                         // MULTI-ROLE
+                        // Drivers section - MOST SPECIFIC FIRST
+                        .pathMatchers("/drivers/available")
+                        .hasAuthority("ADMIN")
+
+                        .pathMatchers("/drivers/*/status")
+                        .hasAnyAuthority("ADMIN", "DELIVERY_DRIVER")
+
+                        .pathMatchers(HttpMethod.GET, "/drivers/*")
+                        .hasAuthority("ADMIN")
+
+                        .pathMatchers(HttpMethod.PUT, "/drivers/my-profile")
+                        .hasAuthority("DELIVERY_DRIVER")
+
+                        // Orders section
                         .pathMatchers(HttpMethod.GET, "/orders/*")
                         .hasAnyAuthority("ADMIN", "CUSTOMER")
 
@@ -122,6 +151,7 @@ public class GatewayConfig {
                         .pathMatchers(HttpMethod.PUT, "/orders/*/status")
                         .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
 
+                        // Deliveries section
                         .pathMatchers(HttpMethod.POST, "/deliveries")
                         .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
 
@@ -134,12 +164,7 @@ public class GatewayConfig {
                         .pathMatchers("/deliveries/*/assign-driver")
                         .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
 
-                        .pathMatchers("/drivers/*/status")
-                        .hasAnyAuthority("ADMIN", "DELIVERY_DRIVER")
-
-                        .pathMatchers("/drivers/available")
-                        .hasAnyAuthority("ADMIN")
-
+                        // Payments section
                         .pathMatchers(HttpMethod.GET,
                                 "/payments/*",
                                 "/payments/order/*"
@@ -149,9 +174,14 @@ public class GatewayConfig {
                         .pathMatchers(
                                 "/auth/me",
                                 "/auth/change-password",
-                                "/addresses/**",
                                 "/notifications/**"
                         ).authenticated()
+
+                        .pathMatchers(HttpMethod.GET, "/addresses/user/*")
+                        .hasAuthority("ADMIN")
+
+                        .pathMatchers("/addresses/**")
+                        .hasAuthority("CUSTOMER")
 
                         // FALLBACK
                         // Any endpoint not explicitly defined above requires authentication

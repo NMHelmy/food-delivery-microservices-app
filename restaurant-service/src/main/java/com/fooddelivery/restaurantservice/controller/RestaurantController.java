@@ -73,7 +73,9 @@ public class RestaurantController {
     @PostMapping
     public ResponseEntity<?> createRestaurant(
             @Valid @RequestBody RestaurantRequest request,
-            @RequestHeader("X-User-Id") Long ownerId) {
+            @RequestHeader("X-User-Id") Long ownerId,
+            @RequestHeader("X-User-Role") String userRole
+    ) {
 
         RestaurantResponse restaurant = restaurantService.createRestaurant(request, ownerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(restaurant);
@@ -84,21 +86,41 @@ public class RestaurantController {
     public ResponseEntity<?> updateRestaurant(
             @PathVariable Long id,
             @Valid @RequestBody RestaurantRequest request,
-            @RequestHeader("X-User-Id") Long ownerId) {
+            @RequestHeader("X-User-Id") Long ownerId,
+            @RequestHeader("X-User-Role") String userRole
+    ) {
 
-        RestaurantResponse restaurant = restaurantService.updateRestaurant(id, request, ownerId);
+        RestaurantResponse restaurant = restaurantService.updateRestaurant(id, request, ownerId, userRole);
         return ResponseEntity.ok(restaurant);
     }
 
-    // Owner deletes (deactivates) own restaurant
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteRestaurant(
+    // Deactivate a deactivated restaurant
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<Map<String, String>> deactivateRestaurant(
             @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long ownerId) {
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Role") String userRole
+    ) {
 
-        restaurantService.deleteRestaurant(id, ownerId);
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Restaurant deactivated successfully");
-        return ResponseEntity.ok(response);
+        restaurantService.deactivateRestaurant(id, userId, userRole);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Restaurant deactivated successfully"
+        ));
+    }
+
+    // Activate a deactivated restaurant
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<Map<String, String>> activateRestaurant(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Role") String userRole
+            ) {
+
+        restaurantService.activateRestaurant(id, userId, userRole);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Restaurant activated successfully"
+        ));
     }
 }

@@ -48,48 +48,56 @@ public class MenuItemController {
         return ResponseEntity.ok(item);
     }
 
-    // Owner creates menu item (gateway ensures RESTAURANT_OWNER role)
+    // Owner or Admin creates menu item
     @PostMapping
     public ResponseEntity<?> createMenuItem(
             @PathVariable Long restaurantId,
             @Valid @RequestBody MenuItemRequest request,
-            @RequestHeader("X-User-Id") String ownerId) {
+            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Role") String userRole
+    ) {
 
-        MenuItemResponse item = menuItemService.createMenuItem(restaurantId, request, ownerId);
+        MenuItemResponse item = menuItemService.createMenuItem(restaurantId, request, userId, userRole);
         return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
 
-    // Owner updates menu item (gateway ensures RESTAURANT_OWNER role)
+    // Owner or Admin updates menu item
     @PutMapping("/{itemId}")
     public ResponseEntity<?> updateMenuItem(
             @PathVariable Long restaurantId,
             @PathVariable Long itemId,
             @Valid @RequestBody MenuItemRequest request,
-            @RequestHeader("X-User-Id") String ownerId) {
+            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Role") String userRole
+    ) {
 
-        MenuItemResponse item = menuItemService.updateMenuItem(restaurantId, itemId, request, ownerId);
+        MenuItemResponse item = menuItemService.updateMenuItem(restaurantId, itemId, request, userId, userRole);
         return ResponseEntity.ok(item);
     }
 
-    // Owner deletes menu item (gateway ensures RESTAURANT_OWNER role)
+    // Owner or Admin deletes menu item
     @DeleteMapping("/{itemId}")
     public ResponseEntity<?> deleteMenuItem(
             @PathVariable Long restaurantId,
             @PathVariable Long itemId,
-            @RequestHeader("X-User-Id") String ownerId) {
+            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Role") String userRole
+    ) {
 
-        menuItemService.deleteMenuItem(restaurantId, itemId, ownerId);
+        menuItemService.deleteMenuItem(restaurantId, itemId, userId, userRole);
         return ResponseEntity.ok(Map.of("message", "Menu item deleted successfully"));
     }
 
-    // Owner toggles availability
+    // Owner or Admin toggles availability
     @PatchMapping("/{itemId}/availability")
     public ResponseEntity<?> toggleAvailability(
             @PathVariable Long restaurantId,
             @PathVariable Long itemId,
-            @RequestHeader("X-User-Id") String ownerId) {
+            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Role") String userRole
+    ) {
 
-        MenuItemResponse item = menuItemService.toggleAvailability(restaurantId, itemId, ownerId);
+        MenuItemResponse item = menuItemService.toggleAvailability(restaurantId, itemId, userId, userRole);
         return ResponseEntity.ok(item);
     }
 }

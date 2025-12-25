@@ -7,6 +7,6 @@ import java.util.Map;
 
 @FeignClient(name = "auth-service")
 public interface UserServiceClient {
-    @GetMapping("/user/{userId}")
+    @GetMapping("/auth/user/{userId}")
     Object getUserById(@PathVariable Long userId);
 }
