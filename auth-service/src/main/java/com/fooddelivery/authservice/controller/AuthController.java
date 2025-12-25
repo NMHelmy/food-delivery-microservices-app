@@ -174,9 +174,8 @@ public class AuthController {
         );
     }
 
-    // ADMIN
-
-    @GetMapping("/me")
+    // ADMIN - Internal
+    @GetMapping("/user/{userId}")
     public ResponseEntity<?> getUserInfo(
             @PathVariable Long userId) {
 
