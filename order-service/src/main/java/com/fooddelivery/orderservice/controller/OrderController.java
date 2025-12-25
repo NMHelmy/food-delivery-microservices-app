@@ -54,10 +54,11 @@ public class OrderController {
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponseDTO> getOrderById(
             @PathVariable Long orderId,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Role") String userRole) {
 
         OrderResponseDTO order =
-                orderService.getOrderById(orderId);
+                orderService.getOrderById(orderId, userId, userRole);
 
         return ResponseEntity.ok(order);
     }

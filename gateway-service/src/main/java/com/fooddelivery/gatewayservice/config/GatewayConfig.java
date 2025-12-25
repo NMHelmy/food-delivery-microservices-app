@@ -143,7 +143,7 @@ public class GatewayConfig {
 
                         // Orders section
                         .pathMatchers(HttpMethod.GET, "/orders/*")
-                        .hasAnyAuthority("ADMIN", "CUSTOMER")
+                        .hasAnyAuthority("ADMIN", "CUSTOMER", "RESTAURANT_OWNER")
 
                         .pathMatchers("/orders/restaurant/*")
                         .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")

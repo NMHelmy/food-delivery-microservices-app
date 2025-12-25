@@ -125,9 +125,27 @@ public class OrderService {
         return convertToResponseDTO(savedOrder);
     }
 
-    public OrderResponseDTO getOrderById(Long orderId) {
+    public OrderResponseDTO getOrderById(Long orderId, Long userId, String userRole) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        // Authorization checks
+        boolean isAuthorized = false;
+
+        if ("ADMIN".equals(userRole)) {
+            isAuthorized = true;
+        } else if ("CUSTOMER".equals(userRole)) {
+            isAuthorized = order.getCustomerId().equals(userId);
+        } else if ("RESTAURANT_OWNER".equals(userRole)) {
+            isAuthorized = verifyRestaurantOwnership(order.getRestaurantId(), userId);
+        }
+
+        if (!isAuthorized) {
+            throw new ForbiddenOperationException(
+                    "You are not authorized to view this order"
+            );
+        }
+
         return convertToResponseDTO(order);
     }
 
