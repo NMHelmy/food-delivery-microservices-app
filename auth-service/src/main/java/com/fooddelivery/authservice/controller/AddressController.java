@@ -113,4 +113,20 @@ public class AddressController {
 
         return ResponseEntity.ok(address);
     }
+
+    // INTERNAL - Verify address ownership
+    @GetMapping("/internal/{addressId}/verify-owner/{userId}")
+    public ResponseEntity<Boolean> verifyAddressOwnership(
+            @PathVariable Long addressId,
+            @PathVariable Long userId,
+            @RequestHeader(value = "X-Internal-Request", required = false) String internalHeader) {
+
+        // Security check: only allow internal service calls
+        if (!"true".equals(internalHeader)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        boolean isOwner = addressService.isAddressOwnedByUser(addressId, userId);
+        return ResponseEntity.ok(isOwner);
+    }
 }

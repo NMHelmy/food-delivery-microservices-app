@@ -59,6 +59,10 @@ public class AddressService {
                         "No default address found for user: " + userId
                 ));
     }
+
+    public boolean isAddressOwnedByUser(Long addressId, Long userId) {
+        return addressRepository.existsByIdAndUserId(addressId, userId);
+    }
     
     @Transactional
     public Address updateAddress(Long userId, Long addressId, AddressDTO dto) {

@@ -41,6 +41,7 @@ public class GatewayConfig {
                         .pathMatchers(HttpMethod.PATCH, "/restaurants/*/rating").denyAll()
                         .pathMatchers(HttpMethod.POST, "/orders/*/paid").denyAll()
                         .pathMatchers(HttpMethod.POST, "/orders/from-cart").denyAll()
+                        .pathMatchers(HttpMethod.GET, "/addresses/internal/**").denyAll()
 
                         // ADMIN only
                         .pathMatchers(

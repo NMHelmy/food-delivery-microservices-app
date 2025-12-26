@@ -4,12 +4,14 @@ import com.fooddelivery.cartservice.dto.*;
 import com.fooddelivery.cartservice.exception.BadRequestException;
 import com.fooddelivery.cartservice.exception.ForbiddenOperationException;
 import com.fooddelivery.cartservice.exception.ResourceNotFoundException;
+import com.fooddelivery.cartservice.feign.AuthServiceClient;
 import com.fooddelivery.cartservice.feign.OrderServiceClient;
 import com.fooddelivery.cartservice.feign.RestaurantServiceClient;
 import com.fooddelivery.cartservice.model.Cart;
 import com.fooddelivery.cartservice.model.CartItem;
 import com.fooddelivery.cartservice.repository.CartRepository;
 import com.fooddelivery.cartservice.repository.CartItemRepository;
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,9 @@ public class CartService {
 
     @Autowired
     private OrderServiceClient orderServiceClient;
+
+    @Autowired
+    private AuthServiceClient authServiceClient;
 
     private static final int CART_TTL_HOURS = 24;
 
@@ -172,6 +177,9 @@ public class CartService {
             throw new BadRequestException("Cart has expired. Please add items again.");
         }
 
+        // Address Validation
+        validateAddressOwnership(dto.getDeliveryAddressId(), customerId);
+
         // Verify all items are still available
         for (CartItem item : cart.getItems()) {
             Map<String, Object> menuItem = fetchMenuItem(
@@ -200,6 +208,28 @@ public class CartService {
         cartRepository.delete(cart);
 
         return order;
+    }
+
+    // User address Validation
+    private void validateAddressOwnership(Long addressId, Long userId) {
+        try {
+            Boolean isOwner = authServiceClient.verifyAddressOwnership(
+                    addressId,
+                    userId,
+                    "true"
+            );
+
+            if (isOwner == null || !isOwner) {
+                throw new ForbiddenOperationException(
+                        "The delivery address does not belong to you");
+            }
+        } catch (FeignException.NotFound e) {
+            throw new ResourceNotFoundException(
+                    "Delivery address not found: " + addressId);
+        } catch (FeignException e) {
+            throw new BadRequestException(
+                    "Unable to verify address ownership. Please try again.");
+        }
     }
 
     private Cart createNewCart(Long customerId, Long restaurantId) {
