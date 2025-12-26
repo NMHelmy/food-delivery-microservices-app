@@ -1,7 +1,7 @@
 package com.fooddelivery.cartservice.exception;
 
-import com.fooddelivery.authservice.exception.BadRequestException;
-import com.fooddelivery.authservice.exception.UnauthorizedException;
+import com.fooddelivery.cartservice.exception.BadRequestException;
+import com.fooddelivery.cartservice.exception.UnauthorizedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;

@@ -40,6 +40,7 @@ public class GatewayConfig {
                         .pathMatchers(HttpMethod.POST, "/auth/validate").denyAll()
                         .pathMatchers(HttpMethod.PATCH, "/restaurants/*/rating").denyAll()
                         .pathMatchers(HttpMethod.POST, "/orders/*/paid").denyAll()
+                        .pathMatchers(HttpMethod.POST, "/orders/from-cart").denyAll()
 
                         // ADMIN only
                         .pathMatchers(
@@ -169,6 +170,15 @@ public class GatewayConfig {
                                 "/payments/*",
                                 "/payments/order/*"
                         ).hasAnyAuthority("ADMIN", "CUSTOMER")
+
+
+                        //Customer-cart section
+                        .pathMatchers(
+                                "/cart",
+                                "/cart/**"
+                        ).hasAuthority("CUSTOMER")
+
+
 
                         // AUTHENTICATED (ALL)
                         .pathMatchers(

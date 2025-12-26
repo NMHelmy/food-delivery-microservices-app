@@ -9,10 +9,10 @@ import java.util.Map;
 @FeignClient(name = "RESTAURANT-SERVICE")
 public interface RestaurantServiceClient {
 
-    @GetMapping("/api/restaurants/{restaurantId}")
+    @GetMapping("/restaurants/{restaurantId}")
     Map<String, Object> getRestaurant(@PathVariable Long restaurantId);
 
-    @GetMapping("/api/restaurants/{restaurantId}/menu/{menuItemId}")
+    @GetMapping("/restaurants/{restaurantId}/menu/{menuItemId}")
     Map<String, Object> getMenuItem(
             @PathVariable Long restaurantId,
             @PathVariable Long menuItemId);

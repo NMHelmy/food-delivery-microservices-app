@@ -59,6 +59,12 @@ spring:
           filters:
               - RewritePath=/notifications/(?<segment>.*), /notifications/$\{segment}
 
+        # Cart Service Routes
+        - id: cart-service
+          uri: lb://CART-SERVICE
+          predicates:
+            - Path=/cart/**
+
       # CORS Configuration
       globalcors:
         cors-configurations:
@@ -84,7 +90,8 @@ eureka:
     fetchRegistry: true
     registerWithEureka: true
   instance:
-    preferIpAddress: true
+    preferIpAddress: false
+    hostname: localhost
 
 # JWT Configuration (MUST MATCH auth-service!)
 jwt:
