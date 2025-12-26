@@ -103,10 +103,11 @@ public class OrderController {
     @GetMapping("/restaurant/{restaurantId}")
     public ResponseEntity<List<OrderResponseDTO>> getOrdersByRestaurantId(
             @PathVariable Long restaurantId,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Role") String userRole) {
 
         return ResponseEntity.ok(
-                orderService.getOrdersByRestaurantId(restaurantId)
+                orderService.getOrdersByRestaurantId(restaurantId, userId, userRole)
         );
     }
 

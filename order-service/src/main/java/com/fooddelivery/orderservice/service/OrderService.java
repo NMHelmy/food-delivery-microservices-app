@@ -163,7 +163,17 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
-    public List<OrderResponseDTO> getOrdersByRestaurantId(Long restaurantId) {
+    public List<OrderResponseDTO> getOrdersByRestaurantId(Long restaurantId, Long userId, String userRole) {
+        // Verify ownership if not admin
+        if (!"ADMIN".equals(userRole)) {
+            boolean isOwner = verifyRestaurantOwnership(restaurantId, userId);
+            if (!isOwner) {
+                throw new ForbiddenOperationException(
+                        "You are not authorized to view orders for this restaurant"
+                );
+            }
+        }
+
         List<Order> orders = orderRepository.findByRestaurantId(restaurantId);
         return orders.stream()
                 .map(this::convertToResponseDTO)
