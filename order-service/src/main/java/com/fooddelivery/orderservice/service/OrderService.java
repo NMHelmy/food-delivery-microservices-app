@@ -16,6 +16,7 @@ import com.fooddelivery.orderservice.model.PaymentStatus;
 import com.fooddelivery.orderservice.repository.OrderRepository;
 // import com.fooddelivery.cartservice.dto.*;
 import java.util.HashMap;
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,12 +48,16 @@ public class OrderService {
 
     @Transactional
     public OrderResponseDTO createOrder(CreateOrderDTO dto, Long customerId) {
+
         // Controller already validated user is CUSTOMER
         // Just verify customer profile exists
         validateCustomerExists(customerId);
 
         validateRestaurantExists(dto.getRestaurantId());
-        validateDeliveryAddress(customerId, dto.getDeliveryAddressId());
+
+        // Address Validation
+        validateAddressOwnership(dto.getDeliveryAddressId(), customerId);
+
         validateMenuItems(dto.getRestaurantId(), dto.getItems());
 
         Order order = new Order();
@@ -439,14 +444,25 @@ public class OrderService {
         }
     }
 
-    private void validateDeliveryAddress(Long customerId, Long addressId) {
+    // Address Validation
+    private void validateAddressOwnership(Long addressId, Long userId) {
         try {
-            // Get customer's addresses and verify the address exists
-            userServiceClient.getAddressById(customerId, addressId);
-            // In a real implementation, you'd parse the response and check if addressId exists
-            // For now, we'll trust that if the call succeeds, the address is valid
-        } catch (Exception e) {
-            throw new BadRequestException("Invalid delivery address for customer " + customerId);
+            Boolean isOwner = userServiceClient.verifyAddressOwnership(
+                    addressId,
+                    userId,
+                    "true"
+            );
+
+            if (isOwner == null || !isOwner) {
+                throw new ForbiddenOperationException(
+                        "The delivery address does not belong to you");
+            }
+        } catch (FeignException.NotFound e) {
+            throw new ResourceNotFoundException(
+                    "Delivery address not found: " + addressId);
+        } catch (FeignException e) {
+            throw new BadRequestException(
+                    "Unable to verify address ownership. Please try again.");
         }
     }
 

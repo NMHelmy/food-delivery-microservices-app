@@ -22,4 +22,12 @@ public interface UserServiceClient {
     // Get all addresses for a user (admin/internal use if needed)
     @GetMapping("/addresses/user/{userId}")
     Object getUserAddresses(@PathVariable Long userId);
+
+    // Address validation
+    @GetMapping("/addresses/internal/{addressId}/verify-owner/{userId}")
+    Boolean verifyAddressOwnership(
+            @PathVariable Long addressId,
+            @PathVariable Long userId,
+            @RequestHeader("X-Internal-Request") String internalHeader
+    );
 }
