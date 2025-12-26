@@ -12,8 +12,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 public interface OrderServiceClient {
 
     @GetMapping("/{orderId}")
-    Object getOrder(@PathVariable Long orderId);
-
+    Object getOrder(
+            @PathVariable Long orderId,
+            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Role") String role
+    );
 
     @PutMapping("/{orderId}/status")
     Object updateOrderStatus(

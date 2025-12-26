@@ -285,7 +285,11 @@ public class DeliveryService {
 
     private void validateOrderExists(Long orderId) {
         try {
-            orderServiceClient.getOrder(orderId);
+            orderServiceClient.getOrder(
+                    orderId,
+                    "1",      // System user ID
+                    "ADMIN"   // System role to bypass authorization
+            );
         } catch (Exception e) {
             throw new ResourceNotFoundException("Order not found with id: " + orderId);
         }
