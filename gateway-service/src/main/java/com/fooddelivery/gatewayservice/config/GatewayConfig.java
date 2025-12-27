@@ -49,6 +49,14 @@ public class GatewayConfig {
                                 "/deliveries/my-deliveries"
                         ).hasAuthority("CUSTOMER")
 
+                        .pathMatchers(
+                                "/deliveries/my-driver-deliveries"
+                        ).hasAuthority("DELIVERY_DRIVER")
+
+                        .pathMatchers(
+                                "/deliveries/my-restaurant-deliveries"
+                        ).hasAuthority("RESTAURANT_OWNER")
+
                         // ADMIN only
                         .pathMatchers(
                                 "/auth/users",
@@ -78,7 +86,6 @@ public class GatewayConfig {
 
                         // DELIVERY DRIVER
                         .pathMatchers(
-                                "/deliveries/my-driver-deliveries",
                                 "/deliveries/driver/active",
                                 "/deliveries/*/pickup-confirmation",
                                 "/deliveries/*/delivery-confirmation"
@@ -105,8 +112,7 @@ public class GatewayConfig {
                         .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
 
                         .pathMatchers(
-                                "/restaurants/owner",
-                                "/deliveries/my-restaurant-deliveries"
+                                "/restaurants/owner"
                         ).hasAuthority("RESTAURANT_OWNER")
 
                         // Public restaurant browsing

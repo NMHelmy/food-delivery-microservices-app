@@ -134,8 +134,10 @@ public class DeliveryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found with id: " + deliveryId));
 
 
-        // new - validate using ID only
-        Map<String, Object> driverProfile = validateDriverExists(dto.getDriverId());
+        // Simple validation - just check if ID is valid
+        if (dto.getDriverId() == null || dto.getDriverId() <= 0) {
+            throw new BadRequestException("Invalid driver ID");
+        }
 
         // Check if delivery can be assigned
         if (delivery.getStatus() != DeliveryStatus.PENDING) {
@@ -148,7 +150,7 @@ public class DeliveryService {
 
         // PUBLISH EVENT
         try {
-            String driverName = getDriverName(driverProfile);
+            String driverName = "Driver #" + dto.getDriverId();
             eventPublisher.publishDeliveryAssigned(new DeliveryAssignedEvent(
                     updatedDelivery.getId(),
                     updatedDelivery.getOrderId(),
@@ -201,8 +203,7 @@ public class DeliveryService {
 
         // PUBLISH EVENT
         try {
-            Map<String, Object> driverProfile = validateDriverExists(driverId);
-            String driverName = getDriverName(driverProfile);
+            String driverName = "Driver #" + driverId;
 
             eventPublisher.publishDeliveryPickedUp(new DeliveryPickedUpEvent(
                     updatedDelivery.getId(),
@@ -339,7 +340,7 @@ public class DeliveryService {
         }
     }
 
-    private Map<String, Object> validateDriverExists(Long driverId) {
+    /*private Map<String, Object> validateDriverExists(Long driverId) {
         try {
             // Call user-service to get driver info and cast the response
             Object response = userServiceClient.getDriverById(driverId);
@@ -366,7 +367,7 @@ public class DeliveryService {
             log.error("Error validating driver {}: {}", driverId, e.getMessage());
             throw new ResourceNotFoundException("Driver profile not found for user id: " + driverId);
         }
-    }
+    } */
 
 
     private void validateStatusTransition(DeliveryStatus currentStatus, DeliveryStatus newStatus) {
@@ -399,7 +400,7 @@ public class DeliveryService {
     }
 
 
-    private String getDriverName(Map<String, Object> driverData) {
+    /*private String getDriverName(Map<String, Object> driverData) {
         // Try to get full name first
         Object fullName = driverData.get("fullName");
         if (fullName != null && !fullName.toString().isEmpty()) {
@@ -419,7 +420,7 @@ public class DeliveryService {
         }
 
         return "Driver (Unknown)";
-    }
+    } */
 
 
     private DeliveryResponseDTO convertToResponseDTO(Delivery delivery) {
