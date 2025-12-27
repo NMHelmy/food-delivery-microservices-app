@@ -43,6 +43,12 @@ public class GatewayConfig {
                         .pathMatchers(HttpMethod.POST, "/orders/from-cart").denyAll()
                         .pathMatchers(HttpMethod.GET, "/addresses/internal/**").denyAll()
 
+
+                        //customer get delivery
+                        .pathMatchers(
+                                "/deliveries/my-deliveries"
+                        ).hasAuthority("CUSTOMER")
+
                         // ADMIN only
                         .pathMatchers(
                                 "/auth/users",
@@ -115,8 +121,7 @@ public class GatewayConfig {
                         .pathMatchers(HttpMethod.POST, "/orders").hasAuthority("CUSTOMER")
 
                         .pathMatchers(
-                                "/orders/customer",
-                                "/deliveries/my-deliveries"
+                                "/orders/customer"
                         ).hasAuthority("CUSTOMER")
 
                         .pathMatchers(HttpMethod.POST,

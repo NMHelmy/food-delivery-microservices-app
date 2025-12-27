@@ -133,9 +133,8 @@ public class DeliveryService {
         Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found with id: " + deliveryId));
 
-        // Validate driver exists
-        //validateDriverExists(dto.getDriverId());
-        //fixed to store driver profile
+
+        // new - validate using ID only
         Map<String, Object> driverProfile = validateDriverExists(dto.getDriverId());
 
         // Check if delivery can be assigned
@@ -164,23 +163,6 @@ public class DeliveryService {
         return convertToResponseDTO(updatedDelivery);
     }
 
-    @Transactional
-    public DeliveryResponseDTO updateDriverLocation(Long deliveryId, UpdateDriverLocationDTO dto, Long driverId) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Delivery not found with id: " + deliveryId));
-
-        // Verify driver is assigned to this delivery
-        if (!driverId.equals(delivery.getDriverId())) {
-            throw new BadRequestException("You are not assigned to this delivery");
-        }
-
-        delivery.setDriverLatitude(dto.getLatitude());
-        delivery.setDriverLongitude(dto.getLongitude());
-        delivery.setLastLocationUpdate(LocalDateTime.now());
-
-        Delivery updatedDelivery = deliveryRepository.save(delivery);
-        return convertToResponseDTO(updatedDelivery);
-    }
 
     @Transactional
     public DeliveryResponseDTO confirmPickup(Long deliveryId, Long driverId) {
@@ -359,14 +341,33 @@ public class DeliveryService {
 
     private Map<String, Object> validateDriverExists(Long driverId) {
         try {
+            // Call user-service to get driver info and cast the response
             Object response = userServiceClient.getDriverById(driverId);
+
             @SuppressWarnings("unchecked")
-            Map<String, Object> driverProfile = (Map<String, Object>) response;
-            return driverProfile;
+            Map<String, Object> driverData = (Map<String, Object>) response;
+
+            // Validate that data was returned
+            if (driverData == null || driverData.isEmpty()) {
+                throw new ResourceNotFoundException("Driver not found for user id: " + driverId);
+            }
+
+            // Optional: Validate driver status if needed
+            Object driverStatus = driverData.get("driverStatus");
+            if (driverStatus != null && "UNAVAILABLE".equals(driverStatus.toString())) {
+                log.warn("Driver {} is currently unavailable but assignment allowed", driverId);
+            }
+
+            return driverData;
+
+        } catch (feign.FeignException.NotFound e) {
+            throw new ResourceNotFoundException("Driver not found for user id: " + driverId);
         } catch (Exception e) {
+            log.error("Error validating driver {}: {}", driverId, e.getMessage());
             throw new ResourceNotFoundException("Driver profile not found for user id: " + driverId);
         }
     }
+
 
     private void validateStatusTransition(DeliveryStatus currentStatus, DeliveryStatus newStatus) {
         boolean isValid = switch (currentStatus) {
@@ -397,6 +398,30 @@ public class DeliveryService {
                 .collect(Collectors.toList());
     }
 
+
+    private String getDriverName(Map<String, Object> driverData) {
+        // Try to get full name first
+        Object fullName = driverData.get("fullName");
+        if (fullName != null && !fullName.toString().isEmpty()) {
+            return fullName.toString();
+        }
+
+        // Fallback to email if name not available
+        Object email = driverData.get("email");
+        if (email != null && !email.toString().isEmpty()) {
+            return email.toString().split("@")[0]; // Use part before @
+        }
+
+        // Final fallback to driver ID
+        Object userId = driverData.get("userId");
+        if (userId != null) {
+            return "Driver #" + userId;
+        }
+
+        return "Driver (Unknown)";
+    }
+
+
     private DeliveryResponseDTO convertToResponseDTO(Delivery delivery) {
         DeliveryResponseDTO dto = new DeliveryResponseDTO();
         dto.setId(delivery.getId());
@@ -408,9 +433,6 @@ public class DeliveryService {
         dto.setStatus(delivery.getStatus());
         dto.setRestaurantAddress(delivery.getRestaurantAddress());
         dto.setDeliveryAddress(delivery.getDeliveryAddress());
-        dto.setDriverLatitude(delivery.getDriverLatitude());
-        dto.setDriverLongitude(delivery.getDriverLongitude());
-        dto.setLastLocationUpdate(delivery.getLastLocationUpdate());
         dto.setPickupTime(delivery.getPickupTime());
         dto.setDeliveryTime(delivery.getDeliveryTime());
         dto.setEstimatedDeliveryTime(delivery.getEstimatedDeliveryTime());
@@ -419,14 +441,6 @@ public class DeliveryService {
         dto.setUpdatedAt(delivery.getUpdatedAt());
         return dto;
     }
-    //  METHOD TO GET DRIVER'S NAME
-    private String getDriverName(Map<String, Object> driverProfile) {
-        // Extract driver name from profile
-        // The driver profile might have userId, vehicleType, etc.
-        Object userId = driverProfile.get("userId");
 
-        // For now, return a placeholder
-        return "Driver #" + userId;
-    }
 
 }

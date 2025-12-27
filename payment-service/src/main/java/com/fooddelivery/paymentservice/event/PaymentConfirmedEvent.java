@@ -1,17 +1,62 @@
 package com.fooddelivery.paymentservice.event;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class PaymentConfirmedEvent implements Serializable {
-    private Long paymentId;
-    private Long orderId;
-    private Long customerId;
-    private BigDecimal amount;
+
+    private static final long serialVersionUID = 1L;
+
+    private final Long paymentId;
+    private final Long orderId;
+    private final Long userId;
+    private final Long restaurantId;
+    private final BigDecimal amount;
+    private final LocalDateTime occurredAt;
+
+    /**
+     * This event MUST be created only AFTER:
+     * - Payment exists in DB
+     * - Payment status is CONFIRMED
+     * - Order details (amount, restaurantId) are fetched from order-service
+     */
+    public PaymentConfirmedEvent(
+            Long paymentId,
+            Long orderId,
+            Long userId,
+            Long restaurantId,
+            BigDecimal amount
+    ) {
+        this.paymentId = paymentId;
+        this.orderId = orderId;
+        this.userId = userId;
+        this.restaurantId = restaurantId;
+        this.amount = amount;
+        this.occurredAt = LocalDateTime.now();
+    }
+
+    public Long getPaymentId() {
+        return paymentId;
+    }
+
+    public Long getOrderId() {
+        return orderId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public Long getRestaurantId() {
+        return restaurantId;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public LocalDateTime getOccurredAt() {
+        return occurredAt;
+    }
 }

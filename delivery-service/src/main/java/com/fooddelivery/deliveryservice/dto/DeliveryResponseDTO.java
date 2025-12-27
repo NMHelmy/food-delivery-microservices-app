@@ -21,9 +21,6 @@ public class DeliveryResponseDTO {
     private DeliveryStatus status;
     private String restaurantAddress;
     private String deliveryAddress;
-    private Double driverLatitude;
-    private Double driverLongitude;
-    private LocalDateTime lastLocationUpdate;
     private LocalDateTime pickupTime;
     private LocalDateTime deliveryTime;
     private LocalDateTime estimatedDeliveryTime;

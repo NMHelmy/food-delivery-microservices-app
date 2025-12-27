@@ -2,130 +2,201 @@ package com.fooddelivery.paymentservice.controller;
 
 import java.util.List;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.fooddelivery.paymentservice.dto.PaymentRequest;
 import com.fooddelivery.paymentservice.dto.PaymentResponse;
+import com.fooddelivery.paymentservice.exception.UnauthorizedException;
 import com.fooddelivery.paymentservice.service.PaymentService;
 
 @RestController
 @RequestMapping("/payments")
 public class PaymentController {
 
-    private final PaymentService service;
+    private final PaymentService paymentService;
 
-    public PaymentController(PaymentService service) {
-        this.service = service;
+    public PaymentController(PaymentService paymentService) {
+        this.paymentService = paymentService;
     }
 
-    // CUSTOMER
+    /* =========================
+       🔐 Header Helpers
+       ========================= */
 
-    // POST /payments
+    private Long getUserId(HttpServletRequest request) {
+        String userId = request.getHeader("X-User-Id");
+        if (userId == null) {
+            throw new UnauthorizedException("Missing X-User-Id header");
+        }
+        return Long.parseLong(userId);
+    }
+
+    private String getUserRole(HttpServletRequest request) {
+        String role = request.getHeader("X-User-Role");
+        if (role == null) {
+            throw new UnauthorizedException("Missing X-User-Role header");
+        }
+        return role;
+    }
+
+    private void requireRole(HttpServletRequest request, String role) {
+        if (!role.equals(getUserRole(request))) {
+            throw new UnauthorizedException("Unauthorized: requires " + role);
+        }
+    }
+
+    /* =========================
+       💳 Create Payment
+       ========================= */
+
+    /**
+     * CUSTOMER creates a payment.
+     * Amount is fetched ONLY from order-service.
+     */
     @PostMapping
     public ResponseEntity<PaymentResponse> createPayment(
             @RequestBody PaymentRequest request,
-            @RequestHeader("X-User-Id") Long userId) {
+            HttpServletRequest httpRequest
+    ) {
+        Long userId = getUserId(httpRequest);
 
         PaymentResponse response =
-                service.createPayment(request, userId);
+                paymentService.createPayment(
+                        request.getOrderId(),
+                        request.getPaymentMethod(),
+                        userId
+                );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 
-    // POST /payments/{id}/confirm
-    @PostMapping("/{id}/confirm")
+    /* =========================
+       ✅ Confirm Payment
+       ========================= */
+
+    /**
+     * CUSTOMER confirms their own payment.
+     */
+    @PostMapping("/{paymentId}/confirm")
     public ResponseEntity<PaymentResponse> confirmPayment(
-            @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long userId) {
+            @PathVariable Long paymentId,
+            HttpServletRequest request
+    ) {
+        Long userId = getUserId(request);
 
-        PaymentResponse response =
-                service.confirmPayment(id, userId);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                paymentService.confirmPayment(paymentId, userId)
+        );
     }
 
-    // POST /payments/{id}/cancel
-    @PostMapping("/{id}/cancel")
+    /* =========================
+       ❌ Cancel Payment
+       ========================= */
+
+    /**
+     * CUSTOMER cancels their own pending payment.
+     */
+    @PostMapping("/{paymentId}/cancel")
     public ResponseEntity<PaymentResponse> cancelPayment(
-            @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long userId) {
+            @PathVariable Long paymentId,
+            HttpServletRequest request
+    ) {
+        Long userId = getUserId(request);
 
-        PaymentResponse response =
-                service.cancelPayment(id, userId);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                paymentService.cancelPayment(paymentId, userId)
+        );
     }
 
-    // GET /payments/customer
-    @GetMapping("/customer")
-    public ResponseEntity<List<PaymentResponse>> getMyPayments(
-            @RequestHeader("X-User-Id") Long userId) {
+    /* =========================
+       💸 Refund Payment
+       ========================= */
 
-        List<PaymentResponse> payments =
-                service.getPaymentsByUser(userId);
+    /**
+     * ADMIN refunds a confirmed payment.
+     */
+    @PostMapping("/{paymentId}/refund")
+    public ResponseEntity<PaymentResponse> refundPayment(
+            @PathVariable Long paymentId,
+            HttpServletRequest request
+    ) {
+        requireRole(request, "ADMIN");
 
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(
+                paymentService.refundPayment(paymentId)
+        );
     }
 
-    // CUSTOMER or ADMIN
+    /* =========================
+       🔍 Get Payment
+       ========================= */
 
-    // GET /payments/{id}
-    @GetMapping("/{id}")
+    /**
+     * CUSTOMER gets their own payment.
+     */
+    @GetMapping("/{paymentId}")
     public ResponseEntity<PaymentResponse> getPaymentById(
-            @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long userId) {
+            @PathVariable Long paymentId,
+            HttpServletRequest request
+    ) {
+        Long userId = getUserId(request);
 
-        PaymentResponse response =
-                service.getPaymentById(id, userId);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                paymentService.getPaymentById(paymentId, userId)
+        );
     }
 
-    // GET /payments/order/{orderId}
+    /**
+     * CUSTOMER gets their own payment by orderId.
+     */
     @GetMapping("/order/{orderId}")
     public ResponseEntity<PaymentResponse> getPaymentByOrderId(
             @PathVariable Long orderId,
-            @RequestHeader("X-User-Id") Long userId) {
+            HttpServletRequest request
+    ) {
+        Long userId = getUserId(request);
 
-        PaymentResponse response =
-                service.getPaymentByOrderId(orderId, userId);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                paymentService.getPaymentByOrderId(orderId, userId)
+        );
     }
 
-    // ADMIN
+    /* =========================
+       📋 Lists
+       ========================= */
 
-    // POST /payments/{id}/refund
-    @PostMapping("/{id}/refund")
-    public ResponseEntity<PaymentResponse> refundPayment(
-            @PathVariable Long id) {
+    /**
+     * CUSTOMER gets their own payments.
+     */
+    @GetMapping("/customer")
+    public ResponseEntity<List<PaymentResponse>> getMyPayments(
+            HttpServletRequest request
+    ) {
+        Long userId = getUserId(request);
+        requireRole(request, "CUSTOMER");
 
-        PaymentResponse response =
-                service.refundPayment(id);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                paymentService.getPaymentsByUser(userId)
+        );
     }
 
-    // GET /payments/customer/{customerId}
-    @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<PaymentResponse>> getPaymentsByCustomerId(
-            @PathVariable Long customerId) {
-
-        List<PaymentResponse> payments =
-                service.getPaymentsByUser(customerId);
-
-        return ResponseEntity.ok(payments);
-    }
-
-    // GET /payments
+    /**
+     * ADMIN gets all payments.
+     */
     @GetMapping
-    public ResponseEntity<List<PaymentResponse>> getAllPayments() {
+    public ResponseEntity<List<PaymentResponse>> getAllPayments(
+            HttpServletRequest request
+    ) {
+        requireRole(request, "ADMIN");
 
-        List<PaymentResponse> payments =
-                service.getAllPayments();
-
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(
+                paymentService.getAllPayments()
+        );
     }
 }

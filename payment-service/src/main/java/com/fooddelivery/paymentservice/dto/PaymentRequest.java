@@ -1,19 +1,15 @@
 package com.fooddelivery.paymentservice.dto;
 
-import java.math.BigDecimal;
-
 public class PaymentRequest {
 
     private Long orderId;
-    private BigDecimal amount;
     private String paymentMethod;
 
     public PaymentRequest() {
     }
 
-    public PaymentRequest(Long orderId, BigDecimal amount, String paymentMethod) {
+    public PaymentRequest(Long orderId, String paymentMethod) {
         this.orderId = orderId;
-        this.amount = amount;
         this.paymentMethod = paymentMethod;
     }
 
