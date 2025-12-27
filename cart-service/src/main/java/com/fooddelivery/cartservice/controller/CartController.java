@@ -49,6 +49,12 @@ public class CartController {
             @PathVariable Long itemId,
             @RequestHeader("X-User-Id") Long customerId) {
         CartResponseDTO cart = cartService.removeItemFromCart(itemId, customerId);
+
+        // cart deleted because it became empty
+        if (cart == null) {
+            return ResponseEntity.noContent().build();
+        }
+
         return ResponseEntity.ok(cart);
     }
 

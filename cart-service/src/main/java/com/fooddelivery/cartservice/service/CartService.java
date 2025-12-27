@@ -140,19 +140,23 @@ public class CartService {
         }
 
         Cart cart = item.getCart();
+
+        // Update the relationship first
         cart.removeItem(item);
+
+        // Delete the item row
         cartItemRepository.delete(item);
 
-        // If cart is empty, delete it
+        // If cart is empty, delete cart and return null (NO EXCEPTION!)
         if (cart.getItems().isEmpty()) {
             cartRepository.delete(cart);
-            throw new ResourceNotFoundException("Cart is now empty");
+            return null;
         }
 
         cart.setExpiresAt(LocalDateTime.now().plusHours(CART_TTL_HOURS));
-        cartRepository.save(cart);
+        Cart saved = cartRepository.save(cart);
 
-        return convertToResponseDTO(cart);
+        return convertToResponseDTO(saved);
     }
 
     @Transactional
