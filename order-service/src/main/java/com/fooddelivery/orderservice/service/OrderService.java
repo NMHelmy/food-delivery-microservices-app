@@ -46,6 +46,20 @@ public class OrderService {
     @Autowired
     private OrderEventPublisher eventPublisher; //added for rabbitmq integration
 
+    public OrderSummaryResponse getOrderSummary(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Order not found with id: " + orderId));
+
+        return new OrderSummaryResponse(
+                order.getId(),
+                order.getCustomerId(),
+                order.getTotal(),
+                order.getStatus(),
+                order.getPaymentStatus()
+        );
+    }
+
     @Transactional
     public OrderResponseDTO createOrder(CreateOrderDTO dto, Long customerId) {
 

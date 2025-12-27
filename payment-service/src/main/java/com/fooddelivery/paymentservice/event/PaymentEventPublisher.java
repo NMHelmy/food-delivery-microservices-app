@@ -2,7 +2,15 @@ package com.fooddelivery.paymentservice.event;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
-
+/**
+ * PaymentEventPublisher
+ * --------------------
+ * This class is responsible for PUBLISHING domain events to RabbitMQ.
+ *
+ * Key idea:
+ * - payment-service decides WHAT happened
+ * - this class decides HOW that fact is broadcast to the system
+ */
 @Component
 public class PaymentEventPublisher {
 
@@ -11,6 +19,7 @@ public class PaymentEventPublisher {
     private static final String PAYMENT_CONFIRMED_ROUTING_KEY = "payment.confirmed";
     private static final String PAYMENT_FAILED_ROUTING_KEY = "payment.failed";
     private static final String PAYMENT_REFUNDED_ROUTING_KEY = "payment.refunded";
+    /**foreasy testing*/
 
     private final RabbitTemplate rabbitTemplate;
 

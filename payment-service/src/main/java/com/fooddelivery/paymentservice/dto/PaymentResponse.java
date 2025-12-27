@@ -1,6 +1,13 @@
 package com.fooddelivery.paymentservice.dto;
 
 import java.math.BigDecimal;
+/**Shape the API response
+
+Hide internal database details
+
+Return exactly what the client needs, nothing more
+
+*/
 
 public class PaymentResponse {
 

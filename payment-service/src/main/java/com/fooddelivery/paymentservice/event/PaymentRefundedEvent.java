@@ -1,26 +1,19 @@
 package com.fooddelivery.paymentservice.event;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public class PaymentRefundedEvent implements Serializable {
+public class PaymentRefundedEvent {
 
-    private static final long serialVersionUID = 1L;
+    private Long paymentId;
+    private Long orderId;
+    private Long userId;
+    private BigDecimal amount;
+    private LocalDateTime occurredAt;
 
-    private final Long paymentId;
-    private final Long orderId;
-    private final Long userId;
-    private final BigDecimal amount;
-    private final LocalDateTime occurredAt;
+    public PaymentRefundedEvent() {
+    }
 
-    /**
-     * This event represents a FACT:
-     * - Payment exists in DB
-     * - Payment status has been set to REFUNDED
-     * - Refund amount equals the original payment amount
-     * - Event is emitted ONLY after persistence
-     */
     public PaymentRefundedEvent(
             Long paymentId,
             Long orderId,
@@ -34,23 +27,18 @@ public class PaymentRefundedEvent implements Serializable {
         this.occurredAt = LocalDateTime.now();
     }
 
-    public Long getPaymentId() {
-        return paymentId;
-    }
+    public Long getPaymentId() { return paymentId; }
+    public void setPaymentId(Long paymentId) { this.paymentId = paymentId; }
 
-    public Long getOrderId() {
-        return orderId;
-    }
+    public Long getOrderId() { return orderId; }
+    public void setOrderId(Long orderId) { this.orderId = orderId; }
 
-    public Long getUserId() {
-        return userId;
-    }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 
-    public BigDecimal getAmount() {
-        return amount;
-    }
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
 
-    public LocalDateTime getOccurredAt() {
-        return occurredAt;
-    }
+    public LocalDateTime getOccurredAt() { return occurredAt; }
+    public void setOccurredAt(LocalDateTime occurredAt) { this.occurredAt = occurredAt; }
 }

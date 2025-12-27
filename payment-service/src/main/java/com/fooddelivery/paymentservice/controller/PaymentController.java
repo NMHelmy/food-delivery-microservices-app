@@ -12,7 +12,21 @@ import com.fooddelivery.paymentservice.dto.PaymentRequest;
 import com.fooddelivery.paymentservice.dto.PaymentResponse;
 import com.fooddelivery.paymentservice.exception.UnauthorizedException;
 import com.fooddelivery.paymentservice.service.PaymentService;
-
+/**
+ * PaymentController
+ * -----------------
+ * This class exposes ALL HTTP endpoints related to payments.
+ *
+ * Responsibilities:
+ * - Accept HTTP requests (REST API layer)
+ * - Extract authentication data from headers
+ * - Enforce role-based access (CUSTOMER vs ADMIN)
+ * - Delegate ALL business logic to PaymentService
+ *
+ *
+ *
+ *
+ */
 @RestController
 @RequestMapping("/payments")
 public class PaymentController {
@@ -26,6 +40,12 @@ public class PaymentController {
     /* =========================
        🔐 Header Helpers
        ========================= */
+    /**
+     * Extracts the authenticated user ID from request headers.
+     *
+     * Header expected:
+     *   X-User-Id: <user_id>
+     */
 
     private Long getUserId(HttpServletRequest request) {
         String userId = request.getHeader("X-User-Id");
@@ -34,6 +54,12 @@ public class PaymentController {
         }
         return Long.parseLong(userId);
     }
+    /**
+     * Extracts the authenticated user role from request headers.
+     *
+     * Header expected:
+     *   X-User-Role: CUSTOMER | ADMIN
+     */
 
     private String getUserRole(HttpServletRequest request) {
         String role = request.getHeader("X-User-Role");
@@ -42,6 +68,11 @@ public class PaymentController {
         }
         return role;
     }
+    /**
+     * Enforces role-based authorization.
+     *
+     * Used to protect ADMIN-only or CUSTOMER-only endpoints.
+     */
 
     private void requireRole(HttpServletRequest request, String role) {
         if (!role.equals(getUserRole(request))) {
@@ -54,8 +85,19 @@ public class PaymentController {
        ========================= */
 
     /**
-     * CUSTOMER creates a payment.
-     * Amount is fetched ONLY from order-service.
+     * CUSTOMER creates a payment for an order.
+     *
+     * Flow:
+     * 1. Customer places an order (order-service)
+     * 2. Customer calls this endpoint to create a payment
+     * 3. Payment is stored with status = PENDING
+     *
+     * Security rules:
+     * - User must own the order
+     * - Amount is NOT provided by client
+     * - Amount is fetched from order-service to prevent tampering
+     *
+     * HTTP: POST /payments
      */
     @PostMapping
     public ResponseEntity<PaymentResponse> createPayment(
@@ -81,7 +123,19 @@ public class PaymentController {
        ========================= */
 
     /**
-     * CUSTOMER confirms their own payment.
+     * CUSTOMER confirms a previously created payment.
+     *
+     * Allowed only if:
+     * - Payment exists
+     * - Payment belongs to the user
+     * - Payment status = PENDING
+     *
+     * Side effects:
+     * - Payment status → CONFIRMED
+     * - order-service is notified (order marked as PAID)
+     * - PaymentConfirmedEvent is published (RabbitMQ)
+     *
+     * HTTP: POST /payments/{paymentId}/confirm
      */
     @PostMapping("/{paymentId}/confirm")
     public ResponseEntity<PaymentResponse> confirmPayment(

@@ -1,6 +1,15 @@
 package com.fooddelivery.paymentservice.dto;
 
 public class PaymentRequest {
+    /**
+     * ID of the order being paid for.
+     *
+     * This MUST correspond to:
+     * - an existing order
+     * - owned by the authenticated user
+     *
+     * Validation is handled in the service layer.
+     */
 
     private Long orderId;
     private String paymentMethod;

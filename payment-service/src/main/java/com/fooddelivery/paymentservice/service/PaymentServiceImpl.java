@@ -4,18 +4,29 @@ import com.fooddelivery.paymentservice.dto.PaymentResponse;
 import com.fooddelivery.paymentservice.event.PaymentConfirmedEvent;
 import com.fooddelivery.paymentservice.event.PaymentEventPublisher;
 import com.fooddelivery.paymentservice.event.PaymentRefundedEvent;
+import com.fooddelivery.paymentservice.exception.PaymentConflictException;
 import com.fooddelivery.paymentservice.exception.PaymentNotFoundException;
 import com.fooddelivery.paymentservice.exception.UnauthorizedException;
 import com.fooddelivery.paymentservice.feign.OrderClient;
 import com.fooddelivery.paymentservice.models.Payment;
 import com.fooddelivery.paymentservice.models.PaymentStatus;
 import com.fooddelivery.paymentservice.repository.PaymentRepository;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-
+/**
+ * PaymentServiceImpl
+ * ------------------
+ * This class contains the BUSINESS LOGIC of the payment-service.
+ *
+ * Responsibilities:
+ * - enforce payment rules
+ * - validate ownership
+ * - interact with order-service (via Feign)
+ * - persist payments
+ * - publish domain events
+ */
 @Service
 @Transactional
 public class PaymentServiceImpl implements PaymentService {
@@ -37,12 +48,22 @@ public class PaymentServiceImpl implements PaymentService {
     /* =========================
        CREATE PAYMENT
        ========================= */
+    /**
+     * Creates a new payment for an order.
+     *
+     * Rules enforced:
+     * - An order can only have ONE payment
+     * - The order must belong to the authenticated user
+     * - Payment amount comes ONLY from order-service
+     *
+     * Initial status = PENDING
+     */
 
     @Override
     public PaymentResponse createPayment(Long orderId, String paymentMethod, Long userId) {
 
         if (paymentRepository.existsByOrderId(orderId)) {
-            throw new IllegalStateException("Payment already exists for this order");
+            throw new PaymentConflictException("Payment already exists for this order");
         }
 
         OrderClient.OrderSummaryResponse order =
@@ -60,12 +81,11 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setPaymentMethod(paymentMethod);
         payment.setStatus(PaymentStatus.PENDING);
 
-        Payment saved = paymentRepository.save(payment);
-        return toResponse(saved);
+        return toResponse(paymentRepository.save(payment));
     }
 
     /* =========================
-       CONFIRM PAYMENT
+       CONFIRM PAYMENT (CUSTOMER)
        ========================= */
 
     @Override
@@ -74,18 +94,20 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = getOwnedPayment(paymentId, userId);
 
         if (payment.getStatus() != PaymentStatus.PENDING) {
-            throw new IllegalStateException("Payment cannot be confirmed");
+            throw new PaymentConflictException("Only pending payments can be confirmed");
         }
 
         payment.setStatus(PaymentStatus.CONFIRMED);
         paymentRepository.save(payment);
 
+        // Notify order-service
         orderClient.markOrderAsPaid(
                 payment.getOrderId(),
                 userId,
                 "CUSTOMER"
         );
 
+        // Publish domain event
         eventPublisher.publishPaymentConfirmed(
                 new PaymentConfirmedEvent(
                         payment.getId(),
@@ -109,7 +131,7 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = getOwnedPayment(paymentId, userId);
 
         if (payment.getStatus() != PaymentStatus.PENDING) {
-            throw new IllegalStateException("Only pending payments can be cancelled");
+            throw new PaymentConflictException("Only pending payments can be cancelled");
         }
 
         payment.setStatus(PaymentStatus.CANCELLED);
@@ -129,7 +151,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found"));
 
         if (payment.getStatus() != PaymentStatus.CONFIRMED) {
-            throw new IllegalStateException("Only confirmed payments can be refunded");
+            throw new PaymentConflictException("Only confirmed payments can be refunded");
         }
 
         payment.setStatus(PaymentStatus.REFUNDED);
@@ -196,6 +218,11 @@ public class PaymentServiceImpl implements PaymentService {
     /* =========================
        HELPERS
        ========================= */
+    /**
+     * Fetches a payment and verifies ownership.
+     *
+     * Centralizes authorization logic.
+     */
 
     private Payment getOwnedPayment(Long paymentId, Long userId) {
         Payment payment = paymentRepository.findById(paymentId)

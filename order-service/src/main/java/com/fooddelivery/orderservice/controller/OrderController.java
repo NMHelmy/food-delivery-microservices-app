@@ -2,6 +2,7 @@ package com.fooddelivery.orderservice.controller;
 
 import com.fooddelivery.orderservice.dto.*;
 import com.fooddelivery.orderservice.model.OrderStatus;
+import com.fooddelivery.orderservice.repository.OrderRepository;
 import com.fooddelivery.orderservice.service.OrderService;
 // import com.fooddelivery.cartservice.dto.*;
 import com.fooddelivery.orderservice.dto.CreateOrderFromCartDTO;
@@ -19,6 +20,9 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private OrderRepository orderRepository;
 
     // CUSTOMER
 
@@ -128,6 +132,15 @@ public class OrderController {
     public ResponseEntity<Void> markOrderAsPaid(@PathVariable Long orderId) {
         orderService.markOrderAsPaid(orderId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{orderId}/summary")
+    public ResponseEntity<OrderSummaryResponse> getOrderSummary(
+            @PathVariable Long orderId) {
+
+        return ResponseEntity.ok(
+                orderService.getOrderSummary(orderId)
+        );
     }
 
     // INTERNAL - Cart service calls this endpoint

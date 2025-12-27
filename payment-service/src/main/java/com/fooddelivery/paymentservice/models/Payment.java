@@ -3,8 +3,30 @@ package com.fooddelivery.paymentservice.models;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+/**
+ * Payment Entity
+ * --------------
+ * This entity represents a PAYMENT record in the payment-service database.
+ *
+ * One Payment = One Order
+ *
+ * This table is the SOURCE OF TRUTH for:
+ * - payment amount
+ * - payment status
+ * - payment ownership
 
+ */
 @Entity
+/**
+ * Enforces a critical business rule at the DATABASE level:
+ *
+ * An order can only have ONE payment.
+ *
+ * This prevents:
+ * - double payment attempts
+ * - race conditions
+ * - duplicate rows from bugs
+ */
 @Table(
         name = "payments",
         uniqueConstraints = {

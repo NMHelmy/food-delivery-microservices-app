@@ -26,6 +26,22 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Business rule violation (e.g. duplicate payment, invalid state)
+     */
+    @ExceptionHandler(PaymentConflictException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentConflict(
+            PaymentConflictException ex) {
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.CONFLICT.value());
+        body.put("error", "Payment Conflict");
+        body.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    /**
      * Authorization / ownership failure (NOT authentication)
      */
     @ExceptionHandler(UnauthorizedException.class)
