@@ -4,6 +4,7 @@ class MenuItem {
   final double price;
   final String? description;
   final String? category;
+  final String? imageUrl;
   final bool isAvailable;
 
   MenuItem({
@@ -12,6 +13,7 @@ class MenuItem {
     required this.price,
     this.description,
     this.category,
+    this.imageUrl,
     required this.isAvailable,
   });
 
@@ -22,7 +24,8 @@ class MenuItem {
       price: (json['price'] as num).toDouble(),
       description: json['description'],
       category: json['category'],
-      isAvailable: json['isAvailable'] ?? true,
+      imageUrl: json['imageUrl'],
+      isAvailable: (json['isAvailable'] ?? json['available'] ?? true) as bool,
     );
   }
 }

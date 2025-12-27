@@ -2,16 +2,16 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/auth_response.dart';
 import 'token_service.dart';
+import '../constants.dart';
 
 class AuthService {
-  static const String _baseUrl = "http://192.168.100.12:8085";
 
   static Future<AuthResponse> login({
     required String email,
     required String password,
   }) async {
     final response = await http.post(
-      Uri.parse("$_baseUrl/auth/login"),
+      Uri.parse("$baseUrl/auth/login"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "email": email,
@@ -42,7 +42,7 @@ class AuthService {
     required String password,
   }) async {
     final response = await http.post(
-      Uri.parse("$_baseUrl/auth/register"),
+      Uri.parse("$baseUrl/auth/register"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "email": email,

@@ -24,6 +24,7 @@ class Restaurant {
   });
 
   factory Restaurant.fromJson(Map<String, dynamic> json) {
+    print("IMAGE URL: ${json['imageUrl']}");
     return Restaurant(
       id: json['id'],
       name: json['name'],

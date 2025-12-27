@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'token_service.dart';
+import '../constants.dart';
 
 class ProfileService {
-  static const String _baseUrl = "http://192.168.100.12:8085";
 
   static Future<Map<String, dynamic>> fetchProfile() async {
     final token = await TokenService.getToken();
@@ -13,7 +13,7 @@ class ProfileService {
     }
 
     final response = await http.get(
-      Uri.parse("$_baseUrl/auth/me"),
+      Uri.parse("$baseUrl/auth/me"),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
