@@ -21,7 +21,7 @@ public class PaymentEventListener {
         log.info("Received PAYMENT_CONFIRMED event for payment: {}", event.getPaymentId());
 
         notificationService.createNotification(
-                event.getCustomerId(),
+                event.getUserId(),
                 NotificationType.PAYMENT_CONFIRMED,
                 "Payment Successful",
                 String.format("Your payment of $%.2f for order #%d was successful",
@@ -37,7 +37,7 @@ public class PaymentEventListener {
         log.info("Received PAYMENT_FAILED event for payment: {}", event.getPaymentId());
 
         notificationService.createNotification(
-                event.getCustomerId(),
+                event.getUserId(),
                 NotificationType.PAYMENT_FAILED,
                 "Payment Failed",
                 String.format("Payment for order #%d failed. Reason: %s",
@@ -53,7 +53,7 @@ public class PaymentEventListener {
         log.info("Received PAYMENT_REFUNDED event for payment: {}", event.getPaymentId());
 
         notificationService.createNotification(
-                event.getCustomerId(),
+                event.getUserId(),
                 NotificationType.PAYMENT_REFUNDED,
                 "Refund Processed",
                 String.format("A refund of $%.2f has been processed for order #%d",

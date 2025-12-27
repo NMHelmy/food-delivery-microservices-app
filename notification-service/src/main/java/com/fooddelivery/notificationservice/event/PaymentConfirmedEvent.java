@@ -12,6 +12,6 @@ import java.math.BigDecimal;
 public class PaymentConfirmedEvent {
     private Long paymentId;
     private Long orderId;
-    private Long customerId;
+    private Long userId;
     private BigDecimal amount;
 }

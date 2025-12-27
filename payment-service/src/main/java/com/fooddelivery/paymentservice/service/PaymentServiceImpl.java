@@ -113,7 +113,6 @@ public class PaymentServiceImpl implements PaymentService {
                         payment.getId(),
                         payment.getOrderId(),
                         payment.getUserId(),
-                        payment.getRestaurantId(),
                         payment.getAmount()
                 )
         );
