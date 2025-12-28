@@ -7,6 +7,8 @@ import 'restaurant_details_screen.dart';
 import '../models/restaurant.dart';
 import '../widgets/restaurant_card.dart';
 import '../providers/cart_provider.dart';
+import '../providers/notification_provider.dart';  // ← ADD THIS
+import '../widgets/notification_bell.dart';        // ← ADD THIS
 import 'cart_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -42,6 +44,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _allRestaurants = data;
       _filteredRestaurants = data;
       return data;
+    });
+
+    // ← ADD THIS: Start notification polling when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<NotificationProvider>(context, listen: false)
+          .startPolling();
     });
   }
 
@@ -79,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const SizedBox(height: 10),
 
-            // Top row: title + cart badge
+            // Top row: title + notification bell + cart badge
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -93,6 +101,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const Spacer(),
+                  const NotificationBell(),  // ← ADD THIS: Notification bell icon
+                  const SizedBox(width: 8),  // ← ADD THIS: Spacing between icons
                   _CartIconButton(
                     count: cart.totalItems,
                     onTap: _openCart,

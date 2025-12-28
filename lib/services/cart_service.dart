@@ -3,9 +3,9 @@ import 'package:http/http.dart' as http;
 
 import '../models/cart.dart';
 import 'token_service.dart';
+import '../constants.dart';
 
 class CartService {
-  static const String baseUrl = "http://192.168.100.12:8085";
 
   static Future<Cart?> getCart() async {
     final token = await TokenService.getToken();
@@ -96,6 +96,9 @@ class CartService {
         "Authorization": "Bearer $token",
       },
     );
+
+    // cart became empty
+    if (response.statusCode == 204) return null;
 
     // Backend may return 404 when cart becomes empty; treat as empty cart
     if (response.statusCode == 404) return null;

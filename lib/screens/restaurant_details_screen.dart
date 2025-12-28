@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../models/restaurant.dart';
 import '../models/menu_item.dart';
 import '../services/menu_service.dart';
 import '../widgets/menu_item_card.dart';
 import '../theme/app_theme.dart';
-import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
+import 'cart_screen.dart';
 
 class RestaurantDetailsScreen extends StatefulWidget {
   final Restaurant restaurant;
@@ -32,6 +34,11 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
     super.initState();
     _menuFuture = MenuService.getMenuItems(widget.restaurant.id);
     _scrollController.addListener(_onScroll);
+
+    // Optional: ensure cart is loaded so the bar can appear immediately
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CartProvider>().loadCart();
+    });
   }
 
   @override
@@ -43,31 +50,145 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cartProvider = context.watch<CartProvider>();
+    final cart = cartProvider.cart;
+
+    final hasCartItems = cart != null && cart.items.isNotEmpty;
+    final cartFromSameRestaurant =
+        hasCartItems && cart.restaurantId == widget.restaurant.id;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
-      body: FutureBuilder<List<MenuItem>>(
-        future: _menuFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Stack(
+        children: [
+          FutureBuilder<List<MenuItem>>(
+            future: _menuFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (snapshot.hasError) {
-            return const Center(child: Text("Failed to load menu"));
-          }
+              if (snapshot.hasError) {
+                return const Center(child: Text("Failed to load menu"));
+              }
 
-          final menuItems = snapshot.data ?? [];
-          _prepareCategories(menuItems);
+              final menuItems = snapshot.data ?? [];
+              _prepareCategories(menuItems);
 
-          return CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              _buildHeader(),
-              _buildPinnedCategories(),
-              ..._buildMenuByCategorySlivers(menuItems),
-            ],
-          );
-        },
+              // Add bottom padding so list doesn't hide behind the cart bar
+              final bottomPadding = hasCartItems ? 98.0 : 16.0;
+
+              return CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  _buildHeader(),
+                  _buildPinnedCategories(),
+                  ..._buildMenuByCategorySlivers(menuItems),
+                  SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
+                ],
+              );
+            },
+          ),
+
+          // ✅ Sticky View Cart bar
+          if (hasCartItems)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 18,
+                        offset: const Offset(0, -6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!cartFromSameRestaurant)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline,
+                                  color: Colors.red[700], size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  "Your cart has items from another restaurant.",
+                                  style: TextStyle(
+                                    color: Colors.red[700],
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      SizedBox(
+                        height: 52,
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryOrange,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CartScreen(),
+                              ),
+                            );
+
+                            // In case user cleared cart/checked out and came back
+                            if (!context.mounted) return;
+                            await context.read<CartProvider>().loadCart();
+                          },
+                          child: Row(
+                            children: [
+                              const Icon(Icons.shopping_cart_outlined),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  "View cart • ${cart.totalItems} item(s)",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                "${cart.subtotal.toStringAsFixed(2)} EGP",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.chevron_right),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -176,7 +297,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
       ctx,
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeOut,
-      alignment: 0.02, // place just below pinned bar
+      alignment: 0.02,
     );
 
     _programmaticScroll = false;
@@ -216,7 +337,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
     }
   }
 
-  // ---------- Header with restaurant image ----------
+  // ---------- Header ----------
   SliverAppBar _buildHeader() {
     final imageUrl = widget.restaurant.imageUrl;
 
@@ -327,7 +448,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
     );
   }
 
-  // ---------- Menu grouped by category (reliable scroll targets) ----------
+  // ---------- Menu grouped by category ----------
   List<Widget> _buildMenuByCategorySlivers(List<MenuItem> items) {
     final Map<String, List<MenuItem>> grouped = {};
     for (final item in items) {
@@ -339,14 +460,13 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
     }
 
     final categories = grouped.keys.toList();
-
     final List<Widget> slivers = [];
 
     for (final cat in categories) {
       slivers.add(
         SliverToBoxAdapter(
           child: Container(
-            key: _categoryHeaderKeys[cat], // ✅ scroll target
+            key: _categoryHeaderKeys[cat],
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
             child: Text(
               cat,
@@ -385,7 +505,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
     return slivers;
   }
 
-  // ---------- Menu item details (Talabat-like bottom sheet) ----------
+  // ---------- Menu item details ----------
   void _openMenuItemDetails(MenuItem item) {
     showModalBottomSheet(
       context: context,
@@ -423,7 +543,6 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
                           ),
                         ),
                       ),
-
                       if ((item.imageUrl ?? '').isNotEmpty) ...[
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
@@ -446,7 +565,6 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
                         ),
                         const SizedBox(height: 14),
                       ],
-
                       Text(
                         item.name,
                         style: const TextStyle(
@@ -454,7 +572,6 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-
                       if ((item.description ?? '').isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Text(
@@ -465,9 +582,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
                           ),
                         ),
                       ],
-
                       const SizedBox(height: 14),
-
                       Row(
                         children: [
                           const Text(
@@ -476,9 +591,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
                           ),
                           const Spacer(),
                           IconButton(
-                            onPressed: qty > 1
-                                ? () => setSheetState(() => qty--)
-                                : null,
+                            onPressed: qty > 1 ? () => setSheetState(() => qty--) : null,
                             icon: const Icon(Icons.remove_circle_outline),
                           ),
                           Text(
@@ -494,9 +607,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 18),
-
                       SizedBox(
                         height: 52,
                         child: ElevatedButton(
@@ -510,7 +621,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
                           onPressed: item.isAvailable
                               ? () async {
                             try {
-                              await context.read<CartProvider>().addItem(
+                              await this.context.read<CartProvider>().addItem(
                                 restaurantId: widget.restaurant.id,
                                 menuItemId: item.id,
                                 quantity: qty,
@@ -530,9 +641,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
 
                               final msg = e.toString();
 
-                              // Special handling: adding items from another restaurant
                               if (msg.toLowerCase().contains("different restaurants")) {
-                                final confirm = await _showClearCartDialog(this.context);
+                                final confirm =
+                                await _showClearCartDialog(this.context);
                                 if (confirm == true) {
                                   try {
                                     await this.context.read<CartProvider>().clear();
@@ -571,7 +682,6 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
                             }
                           }
                               : null,
-
                           child: Text(
                             item.isAvailable
                                 ? "Add to cart • ${total.toStringAsFixed(2)} EGP"
@@ -594,6 +704,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
     );
   }
 }
+
 enum AppSnackType { success, error, info }
 
 void _showAppSnack(

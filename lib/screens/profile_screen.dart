@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/auth_provider.dart';
 import '../services/profile_service.dart';
 import '../services/token_service.dart';
+
 import 'welcome_screen.dart';
 import 'delivery_addresses_screen.dart';
 import 'payment_methods_screen.dart';
@@ -8,6 +12,11 @@ import 'notifications_screen.dart';
 import 'help_support_screen.dart';
 import 'settings_screen.dart';
 import 'orders_screen.dart';
+import 'address_screen.dart';
+
+import 'admin_home_screen.dart';
+import 'owner_home_screen.dart';
+import 'driver_home_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -84,10 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: theme.colorScheme.primary.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(
-                icon,
-                color: theme.colorScheme.primary,
-              ),
+              child: Icon(icon, color: theme.colorScheme.primary),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -127,10 +133,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
+    final role = context.watch<AuthProvider>().role; // CUSTOMER / ADMIN / RESTAURANTOWNER / DELIVERYDRIVER [file:3][file:6]
+    final isCustomer = role == "CUSTOMER";
+    final isAdmin = role == "ADMIN";
+    final isOwner = role == "RESTAURANTOWNER";
+    final isDriver = role == "DELIVERYDRIVER";
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Profile"),
+        title: Text(isCustomer ? "Profile" : "Account"),
         centerTitle: true,
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
@@ -158,7 +170,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 🔹 CENTERED PROFILE IDENTITY
+                // Identity card
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -175,40 +187,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: primary,
                           borderRadius: BorderRadius.circular(26),
                         ),
-                        child: const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 40,
-                        ),
+                        child: const Icon(Icons.person, color: Colors.white, size: 40),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         data['fullName'] ?? "",
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         data['email'] ?? "",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color:
-                          theme.colorScheme.onSurface.withOpacity(0.7),
-                        ),
+                        style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withOpacity(0.7)),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         data['phoneNumber'] ?? "",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color:
-                          theme.colorScheme.onSurface.withOpacity(0.7),
-                        ),
+                        style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withOpacity(0.7)),
                         textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          "Role: $role",
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                        ),
                       ),
                     ],
                   ),
@@ -216,43 +225,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 36),
 
-                // 🔹 ACCOUNT
+                // Account section
                 _sectionTitle("Account"),
-                _menuTile(
-                  icon: Icons.receipt_long,
-                  title: "Orders",
-                  subtitle: "View your order history",
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const OrdersScreen()),
-                  ),
-                ),
-                _menuTile(
-                  icon: Icons.location_on_outlined,
-                  title: "Delivery Addresses",
-                  subtitle: "Manage your addresses",
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const DeliveryAddressesScreen(),
+
+                // Role-specific main tile (non-customer)
+                if (isAdmin)
+                  _menuTile(
+                    icon: Icons.admin_panel_settings,
+                    title: "Admin Panel",
+                    subtitle: "Manage system operations",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
                     ),
                   ),
-                ),
-                _menuTile(
-                  icon: Icons.credit_card,
-                  title: "Payment Methods",
-                  subtitle: "Cards and wallets",
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PaymentMethodsScreen(),
+
+                if (isOwner)
+                  _menuTile(
+                    icon: Icons.store,
+                    title: "Owner Panel",
+                    subtitle: "Manage restaurants and menus",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const OwnerHomeScreen()),
                     ),
                   ),
-                ),
+
+                if (isDriver)
+                  _menuTile(
+                    icon: Icons.delivery_dining,
+                    title: "Driver Panel",
+                    subtitle: "Manage deliveries and status",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const DriverHomeScreen()),
+                    ),
+                  ),
+
+                // Customer-only tiles
+                if (isCustomer)
+                  _menuTile(
+                    icon: Icons.receipt_long,
+                    title: "Orders",
+                    subtitle: "View your order history",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const OrdersScreen()),
+                    ),
+                  ),
+
+                if (isCustomer)
+                  _menuTile(
+                    icon: Icons.location_on_outlined,
+                    title: "Delivery Addresses",
+                    subtitle: "Manage your addresses",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AddressesScreen()),
+                    ),
+                  ),
+
+                if (isCustomer)
+                  _menuTile(
+                    icon: Icons.credit_card,
+                    title: "Payment Methods",
+                    subtitle: "Cards and wallets",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                    ),
+                  ),
 
                 const SizedBox(height: 28),
 
-                // 🔹 PREFERENCES
+                // Preferences
                 _sectionTitle("Preferences"),
                 _menuTile(
                   icon: Icons.notifications_outlined,
@@ -260,9 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   subtitle: "Manage your alerts",
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const NotificationsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
                   ),
                 ),
                 _menuTile(
@@ -271,15 +316,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   subtitle: "App preferences",
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const SettingsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
                   ),
                 ),
 
                 const SizedBox(height: 28),
 
-                // 🔹 SUPPORT
+                // Support
                 _sectionTitle("Support"),
                 _menuTile(
                   icon: Icons.help_outline,
@@ -287,15 +330,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   subtitle: "Get help anytime",
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const HelpSupportScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
                   ),
                 ),
 
                 const SizedBox(height: 40),
 
-                // 🔹 LOGOUT
+                // Logout
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -306,9 +347,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     ),
                   ),
                 ),

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/auth_response.dart';
 import 'token_service.dart';
 import '../constants.dart';
+import '../models/auth_me_response.dart';
 
 class AuthService {
 
@@ -28,6 +29,8 @@ class AuthService {
         token: auth.token,
         userId: auth.userId,
       );
+
+      await TokenService.saveRole(auth.role);
 
       return auth;
     } else {
@@ -68,4 +71,25 @@ class AuthService {
       throw Exception(body['message'] ?? "Registration failed");
     }
   }
+
+  static Future<AuthMeResponse> me() async {
+    final token = await TokenService.getToken();
+
+    final response = await http.get(
+      Uri.parse("$baseUrl/auth/me"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    final body = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return AuthMeResponse.fromJson(body as Map<String, dynamic>);
+    } else {
+      throw Exception(body['message'] ?? "Failed to load user");
+    }
+  }
+
 }

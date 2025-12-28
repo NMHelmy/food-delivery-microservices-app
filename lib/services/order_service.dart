@@ -65,4 +65,23 @@ class OrdersService {
       return "Request failed (${response.statusCode})";
     }
   }
+
+  static Future<Map<String, dynamic>> getOrderById(int orderId) async {
+    final token = await TokenService.getToken();
+
+    final response = await http.get(
+      Uri.parse("$baseUrl/orders/$orderId"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception(_extractError(response));
+    }
+  }
+
 }

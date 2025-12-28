@@ -5,6 +5,8 @@ import '../widgets/primary_button.dart';
 import '../services/auth_service.dart';
 import 'signup_screen.dart';
 import 'main_navigation_screen.dart';
+import '../providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -35,6 +37,8 @@ class _LoginScreenState extends State<LoginScreen> {
         email: emailController.text.trim().toLowerCase(),
         password: passwordController.text.trim(),
       );
+
+      await context.read<AuthProvider>().loadMe();
 
       if (!mounted) return;
 

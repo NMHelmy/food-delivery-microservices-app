@@ -38,6 +38,7 @@ dependencies:
   http: ^1.2.0
   flutter_secure_storage: ^9.2.2
   provider: ^6.1.2
+  timeago: ^3.5.0
 
 dev_dependencies:
   flutter_test:

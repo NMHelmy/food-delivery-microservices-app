@@ -6,6 +6,7 @@ import '../providers/cart_provider.dart';
 import '../services/address_service.dart';
 import '../services/order_service.dart';
 import '../theme/app_theme.dart';
+import 'choose_payment_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -225,22 +226,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   : _notesController.text.trim(),
                             );
 
-                            // Map access, not order.id
-                            final orderId = orderMap['id'];
+                            final orderId = (orderMap['id'] as num).toInt();
 
                             if (!context.mounted) return;
 
+                            // Clear cart UI after checkout
                             await context.read<CartProvider>().loadCart();
 
                             if (!context.mounted) return;
 
-                            _showAppSnack(
+                            // Go to payment selection
+                            Navigator.pushReplacement(
                               context,
-                              "Order placed (#$orderId)",
-                              type: AppSnackType.success,
+                              MaterialPageRoute(
+                                builder: (_) => ChoosePaymentScreen(orderId: orderId),
+                              ),
                             );
 
-                            Navigator.pop(context); // back to cart
                           } catch (e) {
                             if (!context.mounted) return;
                             _showAppSnack(
