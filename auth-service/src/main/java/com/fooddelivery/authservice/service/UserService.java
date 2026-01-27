@@ -39,6 +39,11 @@ public class UserService {
             throw new BadRequestException("Phone number already exists");
         }
 
+        String phone = request.getPhoneNumber();
+        String normalized = phone.replaceAll("\\D", "");
+        if (normalized.length() != 11)
+            throw new BadRequestException("Phone number must be 11 digits");
+
         // Create new user
         User user = new User(
                 request.getEmail(),
@@ -158,6 +163,10 @@ public class UserService {
         return userRepository.save(driver);
     }
 
+    public List<User> getAllDrivers() {
+        return userRepository.findByRole(Role.DELIVERY_DRIVER);
+    }
+
     public List<User> getAvailableDrivers() {
         return userRepository.findByRoleAndDriverStatus(Role.DELIVERY_DRIVER, DriverStatus.AVAILABLE);
     }
@@ -208,6 +217,11 @@ public class UserService {
     public void deactivateUser(Long userId) {
         User user = getUserById(userId);
         user.setActive(false);
+
+        if (user.getRole() == Role.DELIVERY_DRIVER) {
+            user.setDriverStatus(DriverStatus.OFFLINE);
+        }
+
         userRepository.save(user);
     }
 

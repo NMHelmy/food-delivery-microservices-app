@@ -43,19 +43,58 @@ public class GatewayConfig {
                         .pathMatchers(HttpMethod.POST, "/orders/from-cart").denyAll()
                         .pathMatchers(HttpMethod.GET, "/addresses/internal/**").denyAll()
 
+                        // ============= DELIVERIES SECTION (REORDERED) =============
+                        // CUSTOMER - specific paths first
+                        .pathMatchers("/deliveries/my-deliveries")
+                        .hasAuthority("CUSTOMER")
 
-                        //customer get delivery
-                        .pathMatchers(
-                                "/deliveries/my-deliveries"
-                        ).hasAuthority("CUSTOMER")
+                        .pathMatchers("/deliveries/my-order/*")
+                        .hasAnyAuthority("ADMIN", "CUSTOMER")
+
+                        // DELIVERY_DRIVER - specific paths first
+                        .pathMatchers("/deliveries/my-driver-deliveries")
+                        .hasAuthority("DELIVERY_DRIVER")
 
                         .pathMatchers(
-                                "/deliveries/my-driver-deliveries"
+                                "/deliveries/driver/active",
+                                "/deliveries/*/pickup-confirmation",
+                                "/deliveries/*/delivery-confirmation"
                         ).hasAuthority("DELIVERY_DRIVER")
 
+                        // RESTAURANT_OWNER - specific path first
+                        .pathMatchers("/deliveries/my-restaurant-deliveries")
+                        .hasAuthority("RESTAURANT_OWNER")
+
+                        // ADMIN + RESTAURANT_OWNER - operations
+                        .pathMatchers(HttpMethod.POST, "/deliveries")
+                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
+
+                        .pathMatchers(HttpMethod.PUT, "/deliveries/*/status")
+                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
+
+                        .pathMatchers(HttpMethod.PUT, "/deliveries/*/assign-driver")
+                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
+
+                        // ADMIN only - general patterns LAST
                         .pathMatchers(
-                                "/deliveries/my-restaurant-deliveries"
-                        ).hasAuthority("RESTAURANT_OWNER")
+                                "/deliveries/admin/**",
+                                "/deliveries/customer/*"
+                        ).hasAuthority("ADMIN")
+
+                        .pathMatchers(HttpMethod.GET, "/deliveries/*")
+                        .hasAuthority("ADMIN")
+
+                        // ============= NOTIFICATIONS SECTION =============
+
+                        // ADMIN only - send notification endpoint
+                        .pathMatchers(HttpMethod.POST, "/notifications/send")
+                        .hasAuthority("ADMIN")
+
+                        // AUTHENTICATED - all other notification endpoints
+                        // (get notifications, mark as read, etc.)
+                        .pathMatchers("/notifications/**")
+                        .authenticated()
+
 
                         // ADMIN only
                         .pathMatchers(
@@ -64,11 +103,7 @@ public class GatewayConfig {
                                 "/addresses/user/*",
                                 "/orders/customer/*",
                                 "/orders/status/*",
-                                "/orders/*/payment",
-                                "/deliveries/admin/**",
-                                "/deliveries/customer/*",
-                                "/deliveries/*",
-                                "/notifications/send"
+                                "/orders/*/payment"
                         ).hasAuthority("ADMIN")
 
                         .pathMatchers(HttpMethod.GET, "/orders")
@@ -83,13 +118,6 @@ public class GatewayConfig {
                         .pathMatchers(HttpMethod.POST,
                                 "/payments/*/refund"
                         ).hasAuthority("ADMIN")
-
-                        // DELIVERY DRIVER
-                        .pathMatchers(
-                                "/deliveries/driver/active",
-                                "/deliveries/*/pickup-confirmation",
-                                "/deliveries/*/delivery-confirmation"
-                        ).hasAuthority("DELIVERY_DRIVER")
 
                         // RESTAURANT OWNER
                         .pathMatchers(HttpMethod.POST, "/restaurants")
@@ -164,19 +192,6 @@ public class GatewayConfig {
                         .pathMatchers(HttpMethod.PUT, "/orders/*/status")
                         .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
 
-                        // Deliveries section
-                        .pathMatchers(HttpMethod.POST, "/deliveries")
-                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
-
-                        .pathMatchers("/deliveries/my-order/*")
-                        .hasAnyAuthority("ADMIN", "CUSTOMER")
-
-                        .pathMatchers(HttpMethod.PUT, "/deliveries/*/status")
-                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
-
-                        .pathMatchers("/deliveries/*/assign-driver")
-                        .hasAnyAuthority("ADMIN", "RESTAURANT_OWNER")
-
                         // Payments section
                         .pathMatchers(HttpMethod.GET,
                                 "/payments/*",
@@ -195,8 +210,7 @@ public class GatewayConfig {
                         // AUTHENTICATED (ALL)
                         .pathMatchers(
                                 "/auth/me",
-                                "/auth/change-password",
-                                "/notifications/**"
+                                "/auth/change-password"
                         ).authenticated()
 
                         .pathMatchers(HttpMethod.GET, "/addresses/user/*")

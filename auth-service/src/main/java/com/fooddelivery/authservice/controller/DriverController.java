@@ -20,6 +20,13 @@ public class DriverController {
 
     // ADMIN / INTERNAL
 
+    @GetMapping
+    public ResponseEntity<List<User>> getAllDrivers() {
+        return ResponseEntity.ok(
+                userService.getAllDrivers()
+        );
+    }
+
     @GetMapping("/available")
     public ResponseEntity<List<User>> getAvailableDrivers() {
         return ResponseEntity.ok(
@@ -85,4 +92,15 @@ public class DriverController {
         );
     }
 
+    @PutMapping("/{driverId}/activate")
+    public ResponseEntity<Map<String, String>> activateDriver(@PathVariable Long driverId) {
+        userService.activateUser(driverId);
+        return ResponseEntity.ok(Map.of("message", "Driver activated"));
+    }
+
+    @PutMapping("/{driverId}/deactivate")
+    public ResponseEntity<Map<String, String>> deactivateDriver(@PathVariable Long driverId) {
+        userService.deactivateUser(driverId);
+        return ResponseEntity.ok(Map.of("message", "Driver deactivated"));
+    }
 }

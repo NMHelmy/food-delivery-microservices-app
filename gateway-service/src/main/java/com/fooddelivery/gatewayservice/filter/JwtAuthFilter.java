@@ -21,6 +21,8 @@ import java.util.List;
 
 @Component // Registers this filter as a Spring bean
 @Order(-100) // Ensures this filter runs before Spring Security authorization
+
+// WebFilter that intercepts EVERY incoming request before it reaches your microservices.
 public class JwtAuthFilter implements WebFilter {
 
     private static final Logger log =

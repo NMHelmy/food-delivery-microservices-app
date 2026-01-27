@@ -73,6 +73,13 @@ public class DeliveryController {
 
     // ADMIN
 
+    @GetMapping("/admin/all")
+    public ResponseEntity<List<DeliveryResponseDTO>> getAllDeliveries() {
+        return ResponseEntity.ok(
+                deliveryService.getAllDeliveries()
+        );
+    }
+
     @GetMapping("/{deliveryId}")
     public ResponseEntity<DeliveryResponseDTO> getDeliveryById(
             @PathVariable Long deliveryId) {

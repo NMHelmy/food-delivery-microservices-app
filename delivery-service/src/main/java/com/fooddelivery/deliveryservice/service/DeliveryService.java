@@ -107,6 +107,13 @@ public class DeliveryService {
                 .collect(Collectors.toList());
     }
 
+    public List<DeliveryResponseDTO> getAllDeliveries() {
+        List<Delivery> deliveries = deliveryRepository.findAll();
+        return deliveries.stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public DeliveryResponseDTO updateDeliveryStatus(Long deliveryId, UpdateDeliveryStatusDTO dto) {
         Delivery delivery = deliveryRepository.findById(deliveryId)
@@ -117,6 +124,8 @@ public class DeliveryService {
 
         delivery.setStatus(dto.getStatus());
 
+        Delivery updatedDelivery = deliveryRepository.save(delivery);
+
         // Set timestamps based on status
         if (dto.getStatus() == DeliveryStatus.PICKED_UP && delivery.getPickupTime() == null) {
             delivery.setPickupTime(LocalDateTime.now());
@@ -124,7 +133,32 @@ public class DeliveryService {
             delivery.setDeliveryTime(LocalDateTime.now());
         }
 
-        Delivery updatedDelivery = deliveryRepository.save(delivery);
+        try {
+            Map<String, String> orderStatusUpdate = new HashMap<>();
+
+            if (dto.getStatus() == DeliveryStatus.PICKED_UP) {
+                orderStatusUpdate.put("status", "PICKED_UP");
+            } else if (dto.getStatus() == DeliveryStatus.DELIVERED) {
+                orderStatusUpdate.put("status", "DELIVERED");
+            } else if (dto.getStatus() == DeliveryStatus.CANCELLED) {
+                orderStatusUpdate.put("status", "CANCELLED");
+            } else if (dto.getStatus() == DeliveryStatus.ASSIGNED) {
+                // optional: only if you want order to reflect driver assignment
+                // orderStatusUpdate.put("status", "READYFORPICKUP");
+            }
+
+            if (!orderStatusUpdate.isEmpty()) {
+                orderServiceClient.updateOrderStatus(
+                        updatedDelivery.getOrderId(),
+                        orderStatusUpdate,
+                        "1", "ADMIN"
+                );
+            }
+        } catch (Exception e) {
+            log.error("Failed to sync order status for orderId={} err={}",
+                    updatedDelivery.getOrderId(), e.getMessage());
+        }
+
         return convertToResponseDTO(updatedDelivery);
     }
 
