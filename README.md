@@ -115,3 +115,49 @@ backend/
 
 frontend/
  └── fooddash_flutter_app
+```
+
+## 🚀 How the System Works (High-Level Flow)
+
+1. User authenticates and receives a **JWT** from the `auth-service`
+2. All client requests are routed through the **API Gateway**
+3. Customer browses available restaurants and their menus
+4. Selected items are added to the cart
+5. Order is placed and **payment is processed**
+6. Order status is updated by the **restaurant owner or admin**
+7. A delivery driver is assigned and completes the delivery
+8. Notifications are sent **asynchronously** using RabbitMQ
+
+---
+
+## 🎯 Project Focus
+
+Although originally developed as an academic project, **FoodDash** is designed and implemented using **real-world distributed systems principles**, including:
+
+- Service decomposition
+- API Gateway pattern
+- Service discovery
+- Event-driven communication
+- Secure role-based access control
+- Mobile–backend integration
+
+---
+
+## 🛠 Technologies Used
+
+- **Backend**: Java, Spring Boot, Spring Cloud
+- **Service Discovery**: Eureka
+- **API Gateway**: Spring Cloud Gateway
+- **Messaging**: RabbitMQ
+- **Database**: MySQL
+- **Frontend**: Flutter
+- **Containerization**: Docker
+- **Testing**: Postman
+
+---
+
+## 📌 Notes
+
+This project focuses on **architecture, scalability, and system design** rather than UI polish.  
+It is intended to showcase **backend engineering and distributed systems skills**.
+
