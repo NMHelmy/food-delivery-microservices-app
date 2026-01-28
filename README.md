@@ -37,7 +37,7 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 ### 🚀 App Entry
 <p float="left">
   <img src="ui-screenshots/Splash Screen.png" width="200"/>
-  <img src="ui-screenshots/Get Started.png" width="200"/>
+  <img src="ui-screenshots/Get Started.png" width="205"/>
   <img src="ui-screenshots/Login.png" width="200"/>
 </p>
 
@@ -47,7 +47,7 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 <p float="left">
   <img src="ui-screenshots/Home Screen.png" width="200"/>
   <img src="ui-screenshots/Restaurant Details Screen.png" width="200"/>
-  <img src="ui-screenshots/Menu Item Details.png" width="200"/>
+  <img src="ui-screenshots/Menu Item Details.png" width="205"/>
   <img src="ui-screenshots/Cart.png" width="200"/>
 </p>
 
@@ -67,7 +67,7 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 <p float="left">
   <img src="ui-screenshots/Owner.png" width="200"/>
   <img src="ui-screenshots/Driver.png" width="200"/>
-  <img src="ui-screenshots/Driver - Edit Profile.png" width="200"/>
+  <img src="ui-screenshots/Driver - Edit Profile.png" width="205"/>
 </p>
 
 ---
@@ -221,6 +221,7 @@ Although originally developed as an academic project, **FoodDash** is designed a
 
 This project focuses on **architecture, scalability, and system design** rather than UI polish.  
 It is intended to showcase **backend engineering and distributed systems skills**.
+
 
 
 
