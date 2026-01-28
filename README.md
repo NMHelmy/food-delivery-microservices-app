@@ -37,6 +37,8 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 ### 🚀 App Entry
 <p float="left">
   <img src="ui-screenshots/Splash Screen.png" width="220"/>
+  <img src="ui-screenshots/Get Started.png" width="220"/>
+  <img src="ui-screenshots/Login.png" width="220"/>
 </p>
 
 ---
@@ -44,17 +46,41 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 ### 🧑‍🍳 Customer Experience
 <p float="left">
   <img src="ui-screenshots/Home Screen.png" width="220"/>
-  <img src="ui-screenshots/Restaurant Details Screen2.png" width="220"/>
+  <img src="ui-screenshots/Restaurant Details Screen.png" width="220"/>
+  <img src="ui-screenshots/Menu Item Details.png" width="220"/>
   <img src="ui-screenshots/Cart.png" width="220"/>
-  <img src="ui-screenshots/Checkout.png" width="220"/>
 </p>
 
 ---
 
 ### 📦 Order Lifecycle
 <p float="left">
+  <img src="ui-screenshots/Checkout.png" width="220"/>
+  <img src="ui-screenshots/Payment.png" width="220"/>
   <img src="ui-screenshots/Orders.png" width="220"/>
   <img src="ui-screenshots/Track Order.png" width="220"/>
+</p>
+
+---
+
+### 🚚 Restaurant Owner & Delivery Driver
+<p float="left">
+  <img src="ui-screenshots/Owner.png" width="220"/>
+  <img src="ui-screenshots/Driver.png" width="220"/>
+  <img src="ui-screenshots/Driver - Edit Profile.png" width="220"/>
+</p>
+
+---
+
+### 🛠 Admin & Operations
+<p float="left">
+  <img src="ui-screenshots/Admin.png" width="220"/>
+  <img src="ui-screenshots/Admin - User Management.png" width="220"/>
+  <img src="ui-screenshots/Admin - View User.png" width="220"/>
+  <img src="ui-screenshots/Admin - Order Management.png" width="220"/>
+  <img src="ui-screenshots/Admin - Restaurant Owner Management.png" width="220"/>
+  <img src="ui-screenshots/Admin - Driver Management.png" width="220"/>
+  <img src="ui-screenshots/Admin - Delivery Management.png" width="220"/>
 </p>
 
 ---
@@ -66,20 +92,6 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 
 ---
 
-### 🚚 Delivery Driver
-<p float="left">
-  <img src="ui-screenshots/Driver.png" width="220"/>
-</p>
-
----
-
-### 🛠 Admin & Operations
-<p float="left">
-  <img src="ui-screenshots/Admin.png" width="220"/>
-  <img src="ui-screenshots/Admin - Order Management.png" width="220"/>
-</p>
-
----
 
 ## 🔧 Backend Services
 
@@ -209,5 +221,6 @@ Although originally developed as an academic project, **FoodDash** is designed a
 
 This project focuses on **architecture, scalability, and system design** rather than UI polish.  
 It is intended to showcase **backend engineering and distributed systems skills**.
+
 
 
