@@ -32,6 +32,55 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 
 ---
 
+## 📸 Screenshots
+
+### 🚀 App Entry
+<p float="left">
+  <img src="ui-screenshots/Splash Screen.png" width="220"/>
+</p>
+
+---
+
+### 🧑‍🍳 Customer Experience
+<p float="left">
+  <img src="ui-screenshots/Home Screen.png" width="220"/>
+  <img src="ui-screenshots/Restaurant Details Screen2.png" width="220"/>
+  <img src="ui-screenshots/Cart.png" width="220"/>
+  <img src="ui-screenshots/Checkout.png" width="220"/>
+</p>
+
+---
+
+### 📦 Order Lifecycle
+<p float="left">
+  <img src="ui-screenshots/Orders.png" width="220"/>
+  <img src="ui-screenshots/Track Order.png" width="220"/>
+</p>
+
+---
+
+### 🔔 Event-Driven Notifications
+<p float="left">
+  <img src="ui-screenshots/Notifications.png" width="220"/>
+</p>
+
+---
+
+### 🚚 Delivery Driver
+<p float="left">
+  <img src="ui-screenshots/Driver.png" width="220"/>
+</p>
+
+---
+
+### 🛠 Admin & Operations
+<p float="left">
+  <img src="ui-screenshots/Admin.png" width="220"/>
+  <img src="ui-screenshots/Admin - Order Management.png" width="220"/>
+</p>
+
+---
+
 ## 🔧 Backend Services
 
 All backend services are built using **Java + Spring Boot**, each with its own MySQL database.
@@ -160,4 +209,5 @@ Although originally developed as an academic project, **FoodDash** is designed a
 
 This project focuses on **architecture, scalability, and system design** rather than UI polish.  
 It is intended to showcase **backend engineering and distributed systems skills**.
+
 
