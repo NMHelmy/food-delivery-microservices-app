@@ -193,7 +193,7 @@ frontend/
 
 ## 🎯 Project Focus
 
-Although originally developed as an academic project, **FoodDash** is designed and implemented using **real-world distributed systems principles**, including:
+**FoodDash** is designed and implemented using **real-world distributed systems principles**, including:
 
 - Service decomposition
 - API Gateway pattern
@@ -221,6 +221,7 @@ Although originally developed as an academic project, **FoodDash** is designed a
 
 This project focuses on **architecture, scalability, and system design** rather than UI polish.  
 It is intended to showcase **backend engineering and distributed systems skills**.
+
 
 
 
