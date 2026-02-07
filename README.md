@@ -1,4 +1,4 @@
-# 🍔 FoodDash – Distributed Food Delivery Platform
+# FoodDash – Distributed Food Delivery Platform
 
 FoodDash is a **microservices-based food delivery application** inspired by platforms like Talabat.  
 It is designed to demonstrate **distributed systems architecture**, **role-based access control**, and **end-to-end mobile–backend integration** using modern backend and mobile technologies.
@@ -7,7 +7,7 @@ The system supports multiple user roles — **Customer, Restaurant Owner, Delive
 
 ---
 
-## 🧩 System Overview
+## System Overview
 
 FoodDash follows a **microservices architecture** with centralized routing, service discovery, and asynchronous communication where needed.
 
@@ -21,7 +21,7 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 - **API Gateway** for centralized routing and security
 - **Service Discovery** using Netflix Eureka
@@ -32,18 +32,11 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 
 ---
 
-## 📸 Screenshots
-
-### 🚀 App Entry
-<p float="left">
-  <img src="ui-screenshots/Splash Screen.png" width="200"/>
-  <img src="ui-screenshots/Get Started.png" width="205"/>
-  <img src="ui-screenshots/Login.png" width="200"/>
-</p>
+## Screenshots
 
 ---
 
-### 🧑‍🍳 Customer Experience
+### Customer Experience
 <p float="left">
   <img src="ui-screenshots/Home Screen.png" width="200"/>
   <img src="ui-screenshots/Restaurant Details Screen.png" width="200"/>
@@ -53,41 +46,11 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 
 ---
 
-### 📦 Order Lifecycle
-<p float="left">
-  <img src="ui-screenshots/Checkout.png" width="200"/>
-  <img src="ui-screenshots/Payment.png" width="200"/>
-  <img src="ui-screenshots/Orders.png" width="200"/>
-  <img src="ui-screenshots/Track Order.png" width="200"/>
-</p>
-
----
-
-### 🚚 Restaurant Owner & Delivery Driver
+### Restaurant Owner & Delivery Driver & Admin
 <p float="left">
   <img src="ui-screenshots/Owner.png" width="200"/>
   <img src="ui-screenshots/Driver.png" width="200"/>
-  <img src="ui-screenshots/Driver - Edit Profile.png" width="205"/>
-</p>
-
----
-
-### 🛠 Admin & Operations
-<p float="left">
   <img src="ui-screenshots/Admin.png" width="200"/>
-  <img src="ui-screenshots/Admin - User Management.png" width="200"/>
-  <img src="ui-screenshots/Admin - View User.png" width="200"/>
-  <img src="ui-screenshots/Admin - Order Management.png" width="200"/>
-  <img src="ui-screenshots/Admin - Restaurant Owner Management.png" width="200"/>
-  <img src="ui-screenshots/Admin - Driver Management.png" width="200"/>
-  <img src="ui-screenshots/Admin - Delivery Management.png" width="200"/>
-</p>
-
----
-
-### 🔔 Event-Driven Notifications
-<p float="left">
-  <img src="ui-screenshots/Notifications.png" width="200"/>
 </p>
 
 ---
@@ -110,7 +73,7 @@ All backend services are built using **Java + Spring Boot**, each with its own M
 
 ---
 
-## 📱 Frontend (Mobile Application)
+## Frontend (Mobile Application)
 
 - **Framework**: Flutter
 - **Platforms**: Android / iOS
@@ -126,7 +89,7 @@ The mobile app communicates exclusively through the **API Gateway**, ensuring co
 
 ---
 
-## 🔐 Security
+## Security
 
 - **JWT-based authentication**
 - **Role-based authorization**
@@ -135,7 +98,7 @@ The mobile app communicates exclusively through the **API Gateway**, ensuring co
 
 ---
 
-## 📦 Messaging (RabbitMQ)
+## Messaging (RabbitMQ)
 
 RabbitMQ is used to enable **asynchronous communication**, primarily for:
 - Notification handling
@@ -145,7 +108,7 @@ This improves scalability and responsiveness.
 
 ---
 
-## 🗄 Databases
+## Databases
 
 - **MySQL**
 - **One database per service**
@@ -153,7 +116,7 @@ This improves scalability and responsiveness.
 
 ---
 
-## 🐳 Docker & Tooling
+## Docker & Tooling
 
 - Docker used for service containerization (partially)
 - Postman collections used for API testing and validation
@@ -161,7 +124,7 @@ This improves scalability and responsiveness.
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 backend/
@@ -178,7 +141,7 @@ frontend/
  └── fooddash_flutter_app
 ```
 
-## 🚀 How the System Works (High-Level Flow)
+## How the System Works (High-Level Flow)
 
 1. User authenticates and receives a **JWT** from the `auth-service`
 2. All client requests are routed through the **API Gateway**
@@ -191,7 +154,7 @@ frontend/
 
 ---
 
-## 🎯 Project Focus
+## Project Focus
 
 **FoodDash** is designed and implemented using **real-world distributed systems principles**, including:
 
@@ -204,7 +167,7 @@ frontend/
 
 ---
 
-## 🛠 Technologies Used
+## Technologies Used
 
 - **Backend**: Java, Spring Boot, Spring Cloud
 - **Service Discovery**: Eureka
@@ -217,10 +180,11 @@ frontend/
 
 ---
 
-## 📌 Notes
+## Notes
 
 This project focuses on **architecture, scalability, and system design** rather than UI polish.  
 It is intended to showcase **backend engineering and distributed systems skills**.
+
 
 
 
