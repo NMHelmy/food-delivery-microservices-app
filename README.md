@@ -32,9 +32,7 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 
 ---
 
-## Screenshots
-
----
+## Main UI Screenshots
 
 ### Customer Experience
 <p float="left">
@@ -184,6 +182,7 @@ frontend/
 
 This project focuses on **architecture, scalability, and system design** rather than UI polish.  
 It is intended to showcase **backend engineering and distributed systems skills**.
+
 
 
 
