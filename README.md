@@ -5,7 +5,6 @@ It is designed to demonstrate **distributed systems architecture**, **role-based
 
 The system supports multiple user roles — **Customer, Restaurant Owner, Delivery Driver, and Admin** — each with distinct permissions and workflows.
 
----
 
 ## System Overview
 
@@ -19,7 +18,7 @@ FoodDash follows a **microservices architecture** with centralized routing, serv
 
 Each role accesses a **different UI flow** in the mobile application, enforced by backend authorization.
 
----
+
 
 ## Architecture
 
@@ -30,7 +29,7 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
 - **RabbitMQ** for asynchronous **notification handling**
 - **Database per service** for loose coupling and scalability
 
----
+
 
 ## Main UI Screenshots
 
@@ -51,7 +50,7 @@ Each role accesses a **different UI flow** in the mobile application, enforced b
   <img src="ui-screenshots/Admin.png" width="200"/>
 </p>
 
----
+
 
 
 ## 🔧 Backend Services
@@ -69,7 +68,7 @@ All backend services are built using **Java + Spring Boot**, each with its own M
 | delivery-service | Driver assignment and delivery flow |
 | notification-service | Asynchronous notifications (RabbitMQ) |
 
----
+
 
 ## Frontend (Mobile Application)
 
@@ -85,7 +84,7 @@ All backend services are built using **Java + Spring Boot**, each with its own M
 
 The mobile app communicates exclusively through the **API Gateway**, ensuring consistent security and routing.
 
----
+
 
 ## Security
 
@@ -94,7 +93,7 @@ The mobile app communicates exclusively through the **API Gateway**, ensuring co
 - Authorization logic enforced at the **API Gateway level**
 - Clear separation of permissions per role
 
----
+
 
 ## Messaging (RabbitMQ)
 
@@ -104,7 +103,7 @@ RabbitMQ is used to enable **asynchronous communication**, primarily for:
 
 This improves scalability and responsiveness.
 
----
+
 
 ## Databases
 
@@ -112,7 +111,7 @@ This improves scalability and responsiveness.
 - **One database per service**
 - No shared databases (service isolation maintained)
 
----
+
 
 ## Docker & Tooling
 
@@ -120,7 +119,7 @@ This improves scalability and responsiveness.
 - Postman collections used for API testing and validation
 - Services can be run independently or as part of the system
 
----
+
 
 ## Repository Structure
 
@@ -150,7 +149,7 @@ frontend/
 7. A delivery driver is assigned and completes the delivery
 8. Notifications are sent **asynchronously** using RabbitMQ
 
----
+
 
 ## Project Focus
 
@@ -163,7 +162,7 @@ frontend/
 - Secure role-based access control
 - Mobile–backend integration
 
----
+
 
 ## Technologies Used
 
@@ -176,12 +175,13 @@ frontend/
 - **Containerization**: Docker
 - **Testing**: Postman
 
----
+
 
 ## Notes
 
 This project focuses on **architecture, scalability, and system design** rather than UI polish.  
 It is intended to showcase **backend engineering and distributed systems skills**.
+
 
 
 
